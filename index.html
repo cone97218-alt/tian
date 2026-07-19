@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>类脑ΟΔΥΣΣΕΙΑ - 提案讨论区</title>
+    
+    <!-- PWA Manifest & App Config -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="类脑提案">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/xjR80kH2/chaoxiao.webp">
+    
+    <meta name="description" content="类脑ΟΔΥΣΣΕΙΑ 社区运营提案讨论记录库，提供便捷的提案分类、全局搜索与讨论查看功能。">
+    <meta name="keywords" content="类脑, 类脑ΟΔΥΣΣΕΙΑ, 提案, 社区运营, 讨论区">
+    
+    <!-- Google Fonts: Outfit & Inter for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Local style.css sheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- External libraries loaded via CDN for high performance and security -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+</head>
+<body>
+    <div id="app-container" class="app-container">
+        <!-- Main Top Navigation Header -->
+        <header class="app-header">
+            <div class="header-brand">
+                <img class="brand-logo-img" src="https://i.postimg.cc/xjR80kH2/chaoxiao.webp" alt="类脑Logo">
+                <div class="brand-text">
+                    <h1>类脑ΟΔΥΣΣΕΙΑ</h1>
+                    <p>社区运营 · 提案讨论区</p>
+                </div>
+            </div>
+            
+            <!-- Global Stats and Controls -->
+            <div class="header-actions">
+                <div class="stats-counter" id="global-stats">
+                    <span class="stat-badge total-badge">
+                        <span class="label">提案总数:</span>
+                        <span class="value" id="stat-total">-</span>
+                    </span>
+                    <span class="stat-badge active-badge">
+                        <span class="label">讨论中:</span>
+                        <span class="value" id="stat-active">-</span>
+                    </span>
+                </div>
+                
+                <div class="control-buttons">
+                    <!-- Day/Night Toggle Button -->
+                    <button id="theme-toggle" class="control-btn" aria-label="切换主题" title="切换日夜模式">
+                        <i class="fa-solid fa-sun icon icon-sun"></i>
+                        <i class="fa-solid fa-moon icon icon-moon"></i>
+                    </button>
+                    
+                    <!-- Settings Button (Gear) -->
+                    <button id="settings-toggle" class="control-btn" aria-label="打开设置" title="打开管理与设置中心">
+                        <i class="fa-solid fa-gear icon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Layout Section: Left sidebar (list), Right pane (content) -->
+        <main class="app-layout">
+            <!-- Sidebar Panel: List and filters -->
+            <section class="sidebar-panel" id="sidebar-panel">
+                <!-- Advanced Search Box -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="搜索标题、正文、提案人或ID..." autocomplete="off">
+                    <button id="clear-search" class="clear-search-btn" style="display: none;">&times;</button>
+                </div>
+                
+                <!-- Date Filter Section -->
+                <div class="date-filter-section">
+                    <span class="filters-label">时间范围：</span>
+                    <div class="date-presets">
+                        <button class="date-preset-btn active" data-range="all">全部</button>
+                        <button class="date-preset-btn" data-range="7d">最近一周</button>
+                        <button class="date-preset-btn" data-range="30d">最近一月</button>
+                        <button class="date-preset-btn" data-range="365d">最近一年</button>
+                        <button class="date-preset-btn" data-range="custom">自定义</button>
+                    </div>
+                    <!-- Custom date inputs -->
+                    <div class="custom-date-inputs" id="custom-date-inputs" style="display: none;">
+                        <input type="date" id="date-start" title="起始时间" aria-label="起始时间">
+                        <span class="date-sep">至</span>
+                        <input type="date" id="date-end" title="结束时间" aria-label="结束时间">
+                    </div>
+                </div>
+                
+                <!-- Status Filter Tags -->
+                <div class="filters-container">
+                    <span class="filters-label">状态筛选：</span>
+                    <div class="filter-tags" id="filter-tags">
+                        <button class="filter-tag active" data-status="all">全部</button>
+                        <button class="filter-tag" data-status="讨论中">讨论中</button>
+                        <button class="filter-tag" data-status="执行中">执行中</button>
+                        <button class="filter-tag" data-status="公示中">公示中</button>
+                        <button class="filter-tag" data-status="已完成,已结束">已结束</button>
+                        <button class="filter-tag" data-status="已否决">已否决</button>
+                        <button class="filter-tag" data-status="已废弃,已关闭">已废弃/关闭</button>
+                        <button class="filter-tag" data-status="异议">异议</button>
+                    </div>
+                </div>
+                
+                <div class="proposal-list-wrapper">
+                    <div id="proposal-list" class="proposal-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>正在加载数据...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Reader Panel: Detailed viewer -->
+            <section class="reader-panel" id="reader-panel">
+                <!-- Empty State -->
+                <div class="empty-state-view" id="empty-state-view">
+                    <div class="welcome-card">
+                        <img class="welcome-logo" src="https://i.postimg.cc/xjR80kH2/chaoxiao.webp" alt="Logo">
+                        <h2>欢迎阅读提案讨论库</h2>
+                        <p>请在左侧列表中选择一个提案进行阅读。所有讨论和设置均在浏览器端动态运算，不设服务器数据库。</p>
+                        
+                        <div class="theme-info-box">
+                            <span class="info-item"><i class="fa-solid fa-mobile-screen-button"></i> PWA 桌面注册：点击手机浏览器菜单可直接“安装至桌面”</span>
+                            <span class="info-item"><i class="fa-solid fa-circle-half-stroke"></i> 莫兰迪色系：日间米色温润护眼，夜间暗灰深邃沉稳</span>
+                            <span class="info-item"><i class="fa-solid fa-magnifying-glass-chart"></i> 深度搜索：支持同时检索标题、提案正文、备注与提案人</span>
+                            <span class="info-item"><i class="fa-solid fa-file-shield"></i> 管理导出：内置新建/编辑/关联设置工具，可直接下载数据文件覆盖 GitHub</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loading State for Detailed View -->
+                <div class="reader-loading-view" id="reader-loading-view" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在加载内容...</p>
+                </div>
+                
+                <!-- Detailed Proposal Viewer (Hidden initially) -->
+                <div class="proposal-detail-view" id="proposal-detail-view" style="display: none;">
+                    <div class="reader-header-actions">
+                        <button class="mobile-back-btn" id="mobile-back-btn">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            返回列表
+                        </button>
+                        
+                        <button class="edit-proposal-shortcut-btn" id="edit-proposal-shortcut-btn">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            修改提案
+                        </button>
+                    </div>
+                    
+                    <!-- Proposal Document Header -->
+                    <div class="detail-header">
+                        <div class="detail-title-row">
+                            <h2 id="detail-title">提案标题</h2>
+                            <span id="detail-status" class="status-badge">讨论中</span>
+                        </div>
+                        
+                        <!-- Metadata Cards -->
+                        <div class="detail-meta-grid">
+                            <div class="meta-card author-meta">
+                                <div class="avatar-placeholder" id="detail-author-avatar">-</div>
+                                <div class="meta-info">
+                                    <span class="meta-label">提案人</span>
+                                    <span class="meta-val" id="detail-author">梅洛</span>
+                                </div>
+                            </div>
+                            <div class="meta-card date-meta">
+                                <span class="meta-icon"><i class="fa-regular fa-calendar-days"></i></span>
+                                <div class="meta-info">
+                                    <span class="meta-label">创建时间</span>
+                                    <span class="meta-val" id="detail-date">-</span>
+                                </div>
+                            </div>
+                            <div class="meta-card id-meta">
+                                <span class="meta-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                                <div class="meta-info">
+                                    <span class="meta-label">提案ID</span>
+                                    <span class="meta-val" id="detail-id">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Proposal Main Markdown Body -->
+                    <article class="proposal-body markdown-body" id="proposal-body">
+                        <!-- Markdown text content -->
+                    </article>
+                    
+                    <!-- Linkages Section -->
+                    <div class="proposal-linkages-section" id="proposal-linkages-section" style="display: none;">
+                        <h3><i class="fa-solid fa-link"></i> 关联联动提案</h3>
+                        <div class="linkages-list" id="detail-linkages">
+                            <!-- Link items here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Separate Result Section -->
+                    <div class="proposal-result-section" id="proposal-result-section" style="display: none;">
+                        <h3><i class="fa-solid fa-square-poll-horizontal"></i> 提案执行结果</h3>
+                        <div class="result-box markdown-body" id="detail-result">
+                            <!-- Result text -->
+                        </div>
+                    </div>
+                    
+                    <!-- Notes / Comments Section -->
+                    <div class="proposal-notes-section" id="proposal-notes-section" style="display: none;">
+                        <h3><i class="fa-solid fa-note-sticky"></i> 提案备注/注释</h3>
+                        <div class="notes-box markdown-body" id="detail-notes">
+                            <!-- Notes text -->
+                        </div>
+                    </div>
+                    
+                    <!-- Reactions Section -->
+                    <div class="proposal-reactions-section">
+                        <h3>社区反应 (Reactions)</h3>
+                        <div class="reactions-list" id="detail-reactions">
+                            <!-- Reaction items here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Settings Modal Overlay (Full Screen) -->
+        <div class="settings-modal" id="settings-modal" style="display: none;">
+            <div class="settings-modal-content">
+                <header class="settings-modal-header">
+                    <h2><i class="fa-solid fa-sliders"></i> 管理与设置中心</h2>
+                    <button class="close-settings-btn" id="close-settings-btn">&times;</button>
+                </header>
+                
+                <div class="settings-modal-body">
+                    <!-- Sidebar Tabs inside Settings -->
+                    <div class="settings-tabs-sidebar">
+                        <button class="settings-tab-btn active" data-target="tab-general">
+                            <i class="fa-solid fa-circle-info"></i>常规设置
+                        </button>
+                        <button class="settings-tab-btn" data-target="tab-proposal-creator">
+                            <i class="fa-solid fa-file-signature"></i>新建与修改
+                        </button>
+                        <button class="settings-tab-btn" data-target="tab-linkages">
+                            <i class="fa-solid fa-diagram-project"></i>联动关系管理
+                        </button>
+                    </div>
+                    
+                    <!-- Tabs Content Areas -->
+                    <div class="settings-tabs-content">
+                        
+                        <!-- TAB 1: General Settings -->
+                        <div class="tab-pane active" id="tab-general">
+                            <h3>常规配置</h3>
+                            <hr class="divider">
+                            
+                            <div class="settings-form-group">
+                                <label for="font-size-select">阅读正文字体大小</label>
+                                <select id="font-size-select" class="form-control-input">
+                                    <option value="font-sm">较小 (14px)</option>
+                                    <option value="font-md" selected>标准 (16px)</option>
+                                    <option value="font-lg">较大 (18px)</option>
+                                    <option value="font-xl">超大 (20px)</option>
+                                </select>
+                                <p class="setting-desc">调整正文阅读器中 Markdown 文本的字体大小，适配平板或高分屏阅读。</p>
+                            </div>
+
+                            <div class="settings-form-group">
+                                <label for="settings-api-base">Cloudflare API Base URL (接口基地址)</label>
+                                <input type="text" id="settings-api-base" class="form-control-input" placeholder="例如：https://xxx.workers.dev (留空为本地只读模式)">
+                                <p class="setting-desc">输入您的 Cloudflare Worker 的线上访问域名。如果留空，系统将自动降级为读取仓库根目录的 `list.json` 静态只读模式。</p>
+                            </div>
+                            
+                            <div class="settings-form-group">
+                                <label for="settings-admin-passcode">管理通行密钥 (Admin Passcode)</label>
+                                <input type="password" id="settings-admin-passcode" class="form-control-input" placeholder="输入您的管理密码，安全保存到本地...">
+                                <p class="setting-desc">输入后台配置的 `ADMIN_PASSCODE`，发布/写入云端数据库时会自动作为 Bearer Token 进行验证。</p>
+                            </div>
+
+                            <div class="settings-form-group" id="import-data-group" style="display: none;">
+                                <label>数据初始化导入工具</label>
+                                <button type="button" class="btn-secondary" id="btn-db-import-data" style="width: auto; align-self: flex-start;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> 一键将本地数据导入至云端数据库
+                                </button>
+                                <p class="setting-desc">如果是首次配置 Cloudflare，点击此按钮可将当前本地的 221 条记录和关系一键导入云端。</p>
+                            </div>
+                            
+                            <div class="settings-info-card">
+                                <h4>💡 PWA (离线应用) 说明</h4>
+                                <p>本系统已完全离线化配置。如果您使用的是 Chrome、Edge 或手机浏览器（Safari, Chrome），可以在浏览器菜单中点击“添加到主屏幕”或“安装应用”。</p>
+                                <p>安装后即可像本地 App 一样直接从桌面启动，且在离线状态下依然能够正常搜索和阅读您之前加载过的提案。</p>
+                            </div>
+                        </div>
+                        
+                        <!-- TAB 2: Proposal Creator & Editor -->
+                        <div class="tab-pane" id="tab-proposal-creator">
+                            <div class="section-header-row">
+                                <h3>提案创建/修改工具</h3>
+                                <button type="button" class="creator-reset-btn" id="creator-reset-btn">
+                                    <i class="fa-solid fa-rotate-left"></i>清空/新建提案
+                                </button>
+                            </div>
+                            <hr class="divider">
+                            
+                            <div class="settings-info-card warning">
+                                <p>⚠️ **更新说明**：导出对应的文本文件后，您需要将其放置在您的 GitHub 仓库的 `proposals/` 文件夹下。如果是编辑已有提案，请务必保证 **提案ID** 保持一致，上传后 GitHub 会自动覆盖并重建索引。</p>
+                            </div>
+                            
+                            <form id="proposal-creator-form" class="creator-form">
+                                <div class="form-row-2">
+                                    <div class="form-group-item">
+                                        <label for="form-edit-select">模式选择 / 快速载入已有提案：</label>
+                                        <select id="form-edit-select" class="form-control-input select-styled">
+                                            <option value="">-- 新建提案 --</option>
+                                            <!-- Dynamically filled with list -->
+                                        </select>
+                                    </div>
+                                    <div class="form-group-item">
+                                        <label for="form-id">提案ID (唯一标识，自动生成)：</label>
+                                        <input type="text" id="form-id" class="form-control-input" placeholder="例如：1520398791772078111" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row-1">
+                                    <div class="form-group-item">
+                                        <label for="form-title">提案标题：</label>
+                                        <input type="text" id="form-title" class="form-control-input" placeholder="输入讨论的提案主要名称..." required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row-3">
+                                    <div class="form-group-item">
+                                        <label for="form-author">提案人 (作者名称)：</label>
+                                        <input type="text" id="form-author" class="form-control-input" placeholder="例如：梅洛" required>
+                                    </div>
+                                    <div class="form-group-item">
+                                        <label for="form-date">创建时间：</label>
+                                        <input type="text" id="form-date" class="form-control-input" placeholder="例如：2026/06/27 20:01" required>
+                                    </div>
+                                    <div class="form-group-item">
+                                        <label for="form-status">提案当前状态：</label>
+                                        <select id="form-status" class="form-control-input select-styled">
+                                            <option value="讨论中">讨论中</option>
+                                            <option value="执行中">执行中</option>
+                                            <option value="公示中">公示中</option>
+                                            <option value="已结束">已结束</option>
+                                            <option value="已否决">已否决</option>
+                                            <option value="已废弃">已废弃</option>
+                                            <option value="已关闭">已关闭</option>
+                                            <option value="冻结中">冻结中</option>
+                                            <option value="异议">异议</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row-1">
+                                    <div class="form-group-item">
+                                        <label for="form-content">提案原因与动议正文 (支持 Markdown)：</label>
+                                        <textarea id="form-content" class="form-control-input textarea-large" placeholder="> ## 提案原因&#10;目前遇到的问题...&#10;&#10;> ## 议案动议&#10;具体解决方案..." required></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row-1">
+                                    <div class="form-group-item">
+                                        <label for="form-result">提案执行结果 (可选，支持 Markdown)：</label>
+                                        <textarea id="form-result" class="form-control-input textarea-medium" placeholder="提案表决结果、决议通过执行情况等... 可单独导出为结果文件"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row-1">
+                                    <div class="form-group-item">
+                                        <label for="form-notes">备注/注释 (可选，支持 Markdown)：</label>
+                                        <textarea id="form-notes" class="form-control-input textarea-small" placeholder="此处可以添加其他附加说明、备注或修订历史..."></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="creator-actions">
+                                    <!-- Cloud DB Mode Save Button -->
+                                    <button type="button" class="btn-primary" id="btn-db-save-proposal" style="display: none;">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> 保存并发布至云端数据库
+                                    </button>
+                                    <!-- File Export backup options -->
+                                    <button type="button" class="btn-secondary" id="btn-export-proposal">
+                                        <i class="fa-solid fa-file-arrow-down"></i> 导出备份 (.txt)
+                                    </button>
+                                    <button type="button" class="btn-secondary" id="btn-export-result">
+                                        <i class="fa-solid fa-square-check"></i> 导出结果文件 (.md)
+                                    </button>
+                                    <button type="button" class="btn-secondary" id="btn-export-notes">
+                                        <i class="fa-solid fa-note-sticky"></i> 导出备注文件 (.md)
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- TAB 3: Linkages Relations Manager -->
+                        <div class="tab-pane" id="tab-linkages">
+                            <h3>提案联动关系配置</h3>
+                            <hr class="divider">
+                            <p class="setting-desc">在此设置各个提案之间的前置、修改、废弃或关联关系。配置完成后导出 `relations.json` 放入仓库根目录，网页即可显示关联链接。</p>
+                            
+                            <!-- Add Relationship Form -->
+                            <div class="relation-add-card">
+                                <h4>添加新联动关系</h4>
+                                <div class="relation-form-row">
+                                    <select id="relation-source" class="form-control-input select-relation">
+                                        <option value="">-- 选择源提案 A --</option>
+                                    </select>
+                                    
+                                    <select id="relation-type" class="form-control-input select-relation-type">
+                                        <option value="modified_from">修改自 / 继承于 (A 修改自 B)</option>
+                                        <option value="depends_on">前置提案 / 依赖 (A 的执行依赖于 B)</option>
+                                        <option value="related_to">联动 / 相关 (A 与 B 相关)</option>
+                                        <option value="obsoleted_by">被废弃 / 被取代 (A 被 B 取代失效)</option>
+                                    </select>
+                                    
+                                    <select id="relation-target" class="form-control-input select-relation">
+                                        <option value="">-- 选择目标提案 B --</option>
+                                    </select>
+                                    
+                                    <button type="button" class="btn-primary" id="btn-add-relation">
+                                        <i class="fa-solid fa-plus"></i>添加关联
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Relationships List -->
+                            <div class="relations-manager-table-wrapper">
+                                <h4>当前联动关系列表 (<span id="relation-count">0</span>)</h4>
+                                <div class="table-scroll-container">
+                                    <table class="relations-table">
+                                        <thead>
+                                            <tr>
+                                                <th>源提案 (A)</th>
+                                                <th>关联类型</th>
+                                                <th>目标提案 (B)</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relations-list-tbody">
+                                            <!-- Relationship rows go here -->
+                                            <tr>
+                                                <td colspan="4" class="no-relations-placeholder">暂无联动关系</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="relations-export-bar">
+                                <!-- Cloud DB Mode Save Button -->
+                                <button type="button" class="btn-primary" id="btn-db-save-relations" style="display: none;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> 保存联动关系至云端数据库
+                                </button>
+                                <!-- File Export backup option -->
+                                <button type="button" class="btn-secondary" id="btn-export-relations">
+                                    <i class="fa-solid fa-share-nodes"></i> 导出关系备份 (relations.json)
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend logic script -->
+    <script>
+        // Global State variables
+        let proposalsData = [];
+        let relationsData = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let activeProposalId = null;
+        let datePreset = 'all';
+        let customDateStart = '';
+        let customDateEnd = '';
+
+        // API Configuration Settings loaded from LocalStorage (defaulting to your Cloudflare Worker URL)
+        let apiBase = localStorage.getItem('api-base') || 'https://odyssey.dday9511.workers.dev';
+        let adminPasscode = localStorage.getItem('admin-passcode') || '';
+
+        // Dom Elements Cached
+        const listContainer = document.getElementById('proposal-list');
+        const emptyState = document.getElementById('empty-state-view');
+        const detailLoading = document.getElementById('reader-loading-view');
+        const detailView = document.getElementById('proposal-detail-view');
+        const appContainer = document.getElementById('app-container');
+        const searchInput = document.getElementById('search-input');
+        const clearSearchBtn = document.getElementById('clear-search');
+        const filterTags = document.getElementById('filter-tags');
+        const mobileBackBtn = document.getElementById('mobile-back-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        
+        // Linkage builder DOM elements cached globally
+        const relSourceSelect = document.getElementById('relation-source');
+        const relTargetSelect = document.getElementById('relation-target');
+        const relTypeSelect = document.getElementById('relation-type');
+        const relationsTbody = document.getElementById('relations-list-tbody');
+        const relationCountSpan = document.getElementById('relation-count');
+
+        // Cloudflare Backend API DOM elements cached
+        const apiBaseInput = document.getElementById('settings-api-base');
+        const adminPasscodeInput = document.getElementById('settings-admin-passcode');
+        const dbSaveProposalBtn = document.getElementById('btn-db-save-proposal');
+        const dbSaveRelationsBtn = document.getElementById('btn-db-save-relations');
+        const importDataGroup = document.getElementById('import-data-group');
+        const dbImportDataBtn = document.getElementById('btn-db-import-data');
+        
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker Registered successfully'))
+                    .catch(err => console.log('Service Worker Registration failed: ', err));
+            });
+        }
+
+        // Initialize Theme Mode
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        initTheme();
+
+        // Configure Marked options globally for rich markdown rendering
+        marked.use({
+            gfm: true,
+            breaks: true, // Render single line breaks as <br> (essential for Discord exports)
+            headerIds: true,
+            mangle: false
+        });
+
+        // Settings font size scale initializer
+        const fontSizeSelect = document.getElementById('font-size-select');
+        const readerBody = document.getElementById('proposal-body');
+        
+        function initFontSize() {
+            const sizeClass = localStorage.getItem('reader-font-size') || 'font-md';
+            fontSizeSelect.value = sizeClass;
+            applyFontSize(sizeClass);
+        }
+        
+        function applyFontSize(sizeClass) {
+            readerBody.classList.remove('font-sm', 'font-md', 'font-lg', 'font-xl');
+            readerBody.classList.add(sizeClass);
+        }
+        
+        fontSizeSelect.addEventListener('change', (e) => {
+            const sizeClass = e.target.value;
+            applyFontSize(sizeClass);
+            localStorage.setItem('reader-font-size', sizeClass);
+        });
+
+        // Initialize settings panel tabs switching
+        const settingsTabButtons = document.querySelectorAll('.settings-tab-btn');
+        const settingsTabPanes = document.querySelectorAll('.tab-pane');
+        
+        settingsTabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.target;
+                
+                settingsTabButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                settingsTabPanes.forEach(pane => {
+                    if (pane.id === target) {
+                        pane.classList.add('active');
+                    } else {
+                        pane.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // Open/Close settings modals
+        settingsToggle.addEventListener('click', () => {
+            settingsModal.style.display = 'flex';
+            populateCreatorFormSelectors();
+            populateRelationSelectors();
+        });
+        
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+
+        // Click outside settings modal to close
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+        });
+
+        // Update API values and visibility based on user input
+        function updateAPIVisibility() {
+            apiBase = apiBaseInput.value.trim().replace(/\/$/, '');
+            adminPasscode = adminPasscodeInput.value.trim();
+            
+            localStorage.setItem('api-base', apiBase);
+            localStorage.setItem('admin-passcode', adminPasscode);
+            
+            if (apiBase) {
+                dbSaveProposalBtn.style.display = 'inline-flex';
+                dbSaveRelationsBtn.style.display = 'inline-flex';
+                importDataGroup.style.display = 'block';
+            } else {
+                dbSaveProposalBtn.style.display = 'none';
+                dbSaveRelationsBtn.style.display = 'none';
+                importDataGroup.style.display = 'none';
+            }
+        }
+
+        // Initialize API inputs
+        apiBaseInput.value = apiBase;
+        adminPasscodeInput.value = adminPasscode;
+        updateAPIVisibility();
+
+        apiBaseInput.addEventListener('input', updateAPIVisibility);
+        adminPasscodeInput.addEventListener('input', updateAPIVisibility);
+
+        // Fetch proposals and relations from Cloudflare Workers API or static fallback files
+        async function fetchProposalsData() {
+            try {
+                let proposalsUrl = 'list.json?t=' + Date.now();
+                let relationsUrl = 'relations.json?t=' + Date.now();
+                
+                if (apiBase) {
+                    proposalsUrl = `${apiBase}/api/proposals`;
+                    relationsUrl = `${apiBase}/api/relations`;
+                }
+                
+                const response = await fetch(proposalsUrl);
+                if (!response.ok) {
+                    throw new Error(`无法读取数据索引 (HTTP ${response.status})`);
+                }
+                proposalsData = await response.json();
+                
+                try {
+                    const relResponse = await fetch(relationsUrl);
+                    if (relResponse.ok) {
+                        relationsData = await relResponse.json();
+                    }
+                } catch (e) {
+                    console.log('未检测到关系数据，静默忽略。');
+                }
+                
+                updateStatistics();
+                renderProposalList();
+                initFontSize();
+                populateRelationListTable();
+            } catch (err) {
+                listContainer.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <p>列表加载失败: ${err.message}</p>
+                        <button onclick="fetchProposalsData()" class="retry-btn"><i class="fa-solid fa-rotate-right"></i> 重新加载</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Update header statistics
+        function updateStatistics() {
+            document.getElementById('stat-total').textContent = proposalsData.length;
+            const activeCount = proposalsData.filter(p => p.status === '讨论中').length;
+            document.getElementById('stat-active').textContent = activeCount;
+        }
+
+        // Date Parser
+        function parseProposalDate(dateStr) {
+            if (!dateStr || dateStr === '未知时间') return null;
+            let clean = dateStr
+                .replace(/年/g, '/')
+                .replace(/月/g, '/')
+                .replace(/日/g, ' ')
+                .trim();
+            const d = new Date(clean);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        // Combined Filter and Search matching
+        function getFilteredData() {
+            const now = new Date();
+            
+            return proposalsData.filter(proposal => {
+                // 1. Filter by Status
+                let matchesStatus = true;
+                if (currentFilter !== 'all') {
+                    const statuses = currentFilter.split(',');
+                    matchesStatus = statuses.includes(proposal.status);
+                }
+
+                // 2. Filter by Search keyword
+                let matchesSearch = true;
+                if (currentSearch) {
+                    const query = currentSearch.toLowerCase();
+                    matchesSearch = 
+                        proposal.title.toLowerCase().includes(query) || 
+                        proposal.author.toLowerCase().includes(query) || 
+                        proposal.id.includes(query) ||
+                        (proposal.content && proposal.content.toLowerCase().includes(query));
+                }
+
+                // 3. Filter by Date range
+                let matchesDate = true;
+                const pDate = parseProposalDate(proposal.date);
+                
+                if (pDate) {
+                    if (datePreset === '7d') {
+                        const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        matchesDate = pDate >= cutoff;
+                    } else if (datePreset === '30d') {
+                        const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        matchesDate = pDate >= cutoff;
+                    } else if (datePreset === '365d') {
+                        const cutoff = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                        matchesDate = pDate >= cutoff;
+                    } else if (datePreset === 'custom') {
+                        if (customDateStart) {
+                            const start = new Date(customDateStart + ' 00:00:00');
+                            if (!isNaN(start.getTime())) matchesDate = matchesDate && pDate >= start;
+                        }
+                        if (customDateEnd) {
+                            const end = new Date(customDateEnd + ' 23:59:59');
+                            if (!isNaN(end.getTime())) matchesDate = matchesDate && pDate <= end;
+                        }
+                    }
+                } else if (datePreset !== 'all') {
+                    matchesDate = false;
+                }
+
+                return matchesStatus && matchesSearch && matchesDate;
+            });
+        }
+
+        // Render Sidebar proposal list cards
+        function renderProposalList() {
+            const items = getFilteredData();
+            
+            if (items.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-list-state">
+                        <p>没有找到匹配的提案</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            items.forEach(p => {
+                const card = document.createElement('div');
+                card.className = `proposal-card ${p.id === activeProposalId ? 'active' : ''}`;
+                card.dataset.id = p.id;
+                
+                let statusClass = 'status-other';
+                if (p.status === '讨论中') statusClass = 'status-discussing';
+                else if (p.status === '执行中') statusClass = 'status-running';
+                else if (p.status === '公示中') statusClass = 'status-public';
+                else if (['已完成', '已结束'].includes(p.status)) statusClass = 'status-ended';
+                else if (p.status === '已否决') statusClass = 'status-rejected';
+                else if (['已废弃', '已关闭', '冻结中'].includes(p.status)) statusClass = 'status-closed';
+                else if (p.status === '异议') statusClass = 'status-objection';
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-status-badge ${statusClass}">${p.status}</span>
+                        <span class="card-date">${p.date.split(' ')[0]}</span>
+                    </div>
+                    <h3 class="card-title">${escapeHTML(p.title)}</h3>
+                    <div class="card-footer">
+                        <span class="card-author">👤 ${escapeHTML(p.author)}</span>
+                        <span class="card-id">#${p.id.slice(-6)}</span>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => selectProposal(p.id));
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Select a proposal to read
+        function selectProposal(id) {
+            activeProposalId = id;
+            
+            document.querySelectorAll('.proposal-card').forEach(card => {
+                if (card.dataset.id === id) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            appContainer.classList.add('view-detail');
+
+            emptyState.style.display = 'none';
+            detailLoading.style.display = 'none';
+            detailView.style.display = 'block';
+
+            const proposal = proposalsData.find(p => p.id === id);
+            if (!proposal) {
+                showDetailError("提案未找到");
+                return;
+            }
+
+            renderProposalDetails(proposal);
+        }
+
+        function showDetailError(msg) {
+            detailLoading.style.display = 'none';
+            detailView.style.display = 'none';
+            emptyState.style.display = 'block';
+            emptyState.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <p>${msg}</p>
+                </div>
+            `;
+        }
+
+        // Render detailed proposal viewer
+        function renderProposalDetails(meta) {
+            document.getElementById('detail-title').textContent = meta.title;
+            const statusBadge = document.getElementById('detail-status');
+            statusBadge.textContent = meta.status;
+            
+            statusBadge.className = 'status-badge';
+            if (meta.status === '讨论中') statusBadge.classList.add('status-discussing');
+            else if (meta.status === '执行中') statusBadge.classList.add('status-running');
+            else if (meta.status === '公示中') statusBadge.classList.add('status-public');
+            else if (['已完成', '已结束'].includes(meta.status)) statusBadge.classList.add('status-ended');
+            else if (meta.status === '已否决') statusBadge.classList.add('status-rejected');
+            else if (['已废弃', '已关闭', '冻结中'].includes(meta.status)) statusBadge.classList.add('status-closed');
+            else if (meta.status === '异议') statusBadge.classList.add('status-objection');
+
+            // Metadata card content
+            document.getElementById('detail-author').textContent = meta.author;
+            const avatar = document.getElementById('detail-author-avatar');
+            avatar.textContent = getAvatarInitials(meta.author);
+            avatar.style.backgroundColor = getAuthorColor(meta.author);
+            
+            document.getElementById('detail-date').textContent = meta.date;
+            document.getElementById('detail-id').textContent = meta.id;
+
+            // Render main text body via Marked
+            const contentArea = document.getElementById('proposal-body');
+            const htmlContent = marked.parse(meta.content || '');
+            contentArea.innerHTML = DOMPurify.sanitize(htmlContent);
+
+            // Render optional result section
+            const resultSection = document.getElementById('proposal-result-section');
+            const resultBox = document.getElementById('detail-result');
+            if (meta.result && meta.result.trim()) {
+                const resHtml = marked.parse(meta.result);
+                resultBox.innerHTML = DOMPurify.sanitize(resHtml);
+                resultSection.style.display = 'block';
+            } else {
+                resultSection.style.display = 'none';
+            }
+            
+            // Render optional notes section
+            const notesSection = document.getElementById('proposal-notes-section');
+            const notesBox = document.getElementById('detail-notes');
+            if (meta.notes && meta.notes.trim()) {
+                const notesHtml = marked.parse(meta.notes);
+                notesBox.innerHTML = DOMPurify.sanitize(notesHtml);
+                notesSection.style.display = 'block';
+            } else {
+                notesSection.style.display = 'none';
+            }
+
+            // Render linkages relationships
+            renderLinkages(meta.id);
+
+            // Render Reactions
+            const reactionsContainer = document.getElementById('detail-reactions');
+            reactionsContainer.innerHTML = '';
+            
+            if (meta.reactions && meta.reactions.length > 0) {
+                meta.reactions.forEach(rx => {
+                    const chip = document.createElement('div');
+                    chip.className = 'reaction-chip';
+                    
+                    let displayEmoji = rx.emoji;
+                    if (rx.emoji.match(/^[a-zA-Z0-9_-]+$/)) {
+                        displayEmoji = `[${rx.emoji}]`;
+                    }
+                    
+                    chip.innerHTML = `
+                        <span class="emoji-img">${escapeHTML(displayEmoji)}</span>
+                        <span class="emoji-count">${rx.count}</span>
+                    `;
+                    reactionsContainer.appendChild(chip);
+                });
+            } else {
+                reactionsContainer.innerHTML = `<span class="no-reactions">无社区反应数据</span>`;
+            }
+        }
+
+        // Render relationships list for current proposal
+        function renderLinkages(proposalId) {
+            const linkagesSection = document.getElementById('proposal-linkages-section');
+            const linkagesList = document.getElementById('detail-linkages');
+            linkagesList.innerHTML = '';
+            
+            const related = relationsData.filter(r => r.source === proposalId || r.target === proposalId);
+            
+            if (related.length === 0) {
+                linkagesSection.style.display = 'none';
+                return;
+            }
+            
+            related.forEach(rel => {
+                const isSource = rel.source === proposalId;
+                const otherId = isSource ? rel.target : rel.source;
+                const otherProposal = proposalsData.find(p => p.id === otherId);
+                
+                if (!otherProposal) return;
+                
+                let typeLabel = "关联";
+                if (rel.type === 'modified_from') {
+                    typeLabel = isSource ? "✍️ 修改自 / 继承于" : "✍️ 被此修改 / 继承自它";
+                } else if (rel.type === 'depends_on') {
+                    typeLabel = isSource ? "🛠️ 依赖前置提案" : "🛠️ 被依赖前置";
+                } else if (rel.type === 'related_to') {
+                    typeLabel = "🔗 联动/关联提案";
+                } else if (rel.type === 'obsoleted_by') {
+                    typeLabel = isSource ? "🚫 已废弃 / 被此取代" : "🚫 废弃取代了此提案";
+                }
+                
+                const chip = document.createElement('button');
+                chip.className = 'linkage-chip';
+                chip.innerHTML = `
+                    <span class="linkage-relation-type">${typeLabel}</span>
+                    <span class="linkage-title">${escapeHTML(otherProposal.title)}</span>
+                `;
+                
+                chip.addEventListener('click', () => selectProposal(otherId));
+                linkagesList.appendChild(chip);
+            });
+            
+            linkagesSection.style.display = 'block';
+        }
+
+        // HTML Sanitizer
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Generate avatar text based on Author name
+        function getAvatarInitials(name) {
+            if (!name) return '?';
+            const clean = name.replace(/[^\w\u4e00-\u9fa5]/g, '').trim();
+            if (clean.length === 0) return name.charAt(0);
+            return clean.substring(0, 2).toUpperCase();
+        }
+
+        // Generate dynamic Morandi color tones for user avatars based on name hash
+        function getAuthorColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hue = Math.abs(hash) % 360;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const sat = 25; 
+            const light = isDark ? 45 : 60;
+            return `hsl(${hue}, ${sat}%, ${light}%)`;
+        }
+
+        // Mobile back button
+        mobileBackBtn.addEventListener('click', () => {
+            appContainer.classList.remove('view-detail');
+        });
+
+        // Mobile touch swipe gestures (left/right swipe to return to list)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const readerPanel = document.getElementById('reader-panel');
+
+        readerPanel.addEventListener('touchstart', (e) => {
+            // Ignore swipe gestures inside elements that have horizontal scrolls (e.g., pre, code, table)
+            if (e.target.closest('pre') || e.target.closest('code') || e.target.closest('table')) {
+                touchStartX = 0;
+                touchStartY = 0;
+                return;
+            }
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        readerPanel.addEventListener('touchend', (e) => {
+            if (!touchStartX || !touchStartY) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            // Detect horizontal swipe gesture:
+            // Horizontal travel > 80px, and vertical offset < 40px
+            if (Math.abs(diffX) > 80 && Math.abs(diffY) < 40) {
+                if (appContainer.classList.contains('view-detail')) {
+                    appContainer.classList.remove('view-detail');
+                }
+            }
+            
+            touchStartX = 0;
+            touchStartY = 0;
+        }, { passive: true });
+
+        // Search Input listeners
+        searchInput.addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            clearSearchBtn.style.display = currentSearch ? 'block' : 'none';
+            renderProposalList();
+        });
+
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearch = '';
+            clearSearchBtn.style.display = 'none';
+            renderProposalList();
+            searchInput.focus();
+        });
+
+        // Date Range preset selection listener
+        const datePresetButtons = document.querySelectorAll('.date-preset-btn');
+        const customDateDiv = document.getElementById('custom-date-inputs');
+        const dateStartInput = document.getElementById('date-start');
+        const dateEndInput = document.getElementById('date-end');
+        
+        datePresetButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                datePresetButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                datePreset = btn.dataset.range;
+                
+                if (datePreset === 'custom') {
+                    customDateDiv.style.display = 'flex';
+                } else {
+                    customDateDiv.style.display = 'none';
+                }
+                renderProposalList();
+            });
+        });
+        
+        dateStartInput.addEventListener('change', (e) => {
+            customDateStart = e.target.value;
+            renderProposalList();
+        });
+        
+        dateEndInput.addEventListener('change', (e) => {
+            customDateEnd = e.target.value;
+            renderProposalList();
+        });
+
+        // Status tags filter toggle listener
+        filterTags.addEventListener('click', (e) => {
+            const btn = e.target.closest('.filter-tag');
+            if (!btn) return;
+            
+            document.querySelectorAll('.filter-tag').forEach(tag => tag.classList.remove('active'));
+            btn.classList.add('active');
+            
+            currentFilter = btn.dataset.status;
+            renderProposalList();
+        });
+
+        // Shortcut to edit proposal from document view page
+        const editShortcutBtn = document.getElementById('edit-proposal-shortcut-btn');
+        editShortcutBtn.addEventListener('click', () => {
+            if (!activeProposalId) return;
+            
+            document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+                if (btn.dataset.target === 'tab-proposal-creator') btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                if (pane.id === 'tab-proposal-creator') pane.classList.add('active');
+                else pane.classList.remove('active');
+            });
+            
+            settingsModal.style.display = 'flex';
+            populateCreatorFormSelectors();
+            
+            const formEditSelect = document.getElementById('form-edit-select');
+            formEditSelect.value = activeProposalId;
+            prefillCreatorFormFields(activeProposalId);
+        });
+
+        // ==========================================================================
+        // SETTINGS & CREATOR LOGIC
+        // ==========================================================================
+
+        const formEditSelect = document.getElementById('form-edit-select');
+        const formId = document.getElementById('form-id');
+        const formTitle = document.getElementById('form-title');
+        const formAuthor = document.getElementById('form-author');
+        const formDate = document.getElementById('form-date');
+        const formStatus = document.getElementById('form-status');
+        const formContent = document.getElementById('form-content');
+        const formResult = document.getElementById('form-result');
+        const formNotes = document.getElementById('form-notes');
+        const creatorResetBtn = document.getElementById('creator-reset-btn');
+        
+        // Populate proposal selection inside creator tab
+        function populateCreatorFormSelectors() {
+            formEditSelect.innerHTML = '<option value="">-- 新建提案 --</option>';
+            proposalsData.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
+                formEditSelect.appendChild(opt);
+            });
+        }
+        
+        formEditSelect.addEventListener('change', (e) => {
+            const selId = e.target.value;
+            if (selId) {
+                prefillCreatorFormFields(selId);
+            } else {
+                resetCreatorForm();
+            }
+        });
+        
+        creatorResetBtn.addEventListener('click', () => {
+            formEditSelect.value = '';
+            resetCreatorForm();
+        });
+        
+        function resetCreatorForm() {
+            formId.value = Date.now().toString() + Math.floor(100 + Math.random() * 900).toString();
+            formTitle.value = '';
+            formAuthor.value = '';
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            formDate.value = dateStr;
+            formStatus.value = '讨论中';
+            formContent.value = '';
+            formResult.value = '';
+            formNotes.value = '';
+        }
+        
+        function prefillCreatorFormFields(pid) {
+            const p = proposalsData.find(item => item.id === pid);
+            if (!p) return;
+            
+            formId.value = p.id;
+            formTitle.value = p.title;
+            formAuthor.value = p.author;
+            formDate.value = p.date;
+            formStatus.value = p.status;
+            formContent.value = p.content || '';
+            formResult.value = p.result || '';
+            formNotes.value = p.notes || '';
+        }
+
+        // EXPORT LOGIC: PROPOSAL TXT
+        document.getElementById('btn-export-proposal').addEventListener('click', () => {
+            if (!formTitle.value || !formAuthor.value || !formDate.value || !formContent.value) {
+                alert("请填写所有的必填字段（标题、提案人、时间、正文内容）！");
+                return;
+            }
+            
+            let fileContent = `==============================================================
+Guild: 类脑ΟΔΥΣΣΕΙΑ
+Channel: 社区运营区 / 🧾︱提案讨论区 / [${formStatus.value}] ${formTitle.value}
+==============================================================
+
+[${formDate.value}] StellariaPact#3495
+***提案人: @${formAuthor.value}***
+
+${formContent.value.trim()}
+`;
+
+            if (formResult.value.trim()) {
+                fileContent += `\n\n> ## 提案结果\n${formResult.value.trim()}`;
+            }
+
+            if (formNotes.value.trim()) {
+                fileContent += `\n\n> ## 备注\n${formNotes.value.trim()}`;
+            }
+            
+            fileContent += `\n\n*讨论帖创建时间: ${formDate.value}*`;
+            
+            const filename = `类脑ΟΔΥΣΣΕΙΑ - 🧾︱提案讨论区 - [${formStatus.value}] ${formTitle.value} [${formId.value}].txt`;
+            downloadFile(filename, fileContent);
+        });
+
+        // EXPORT LOGIC: INDEPENDENT RESULT MD
+        document.getElementById('btn-export-result').addEventListener('click', () => {
+            if (!formResult.value.trim()) {
+                alert("请在“提案结果”输入框中填写执行结果后，再导出独立结果文件！");
+                return;
+            }
+            const filename = `${formId.value}_result.md`;
+            downloadFile(filename, formResult.value.trim());
+        });
+
+        // EXPORT LOGIC: INDEPENDENT NOTES MD
+        document.getElementById('btn-export-notes').addEventListener('click', () => {
+            if (!formNotes.value.trim()) {
+                alert("请在“备注/注释”输入框中填写附加备注后，再导出独立备注文件！");
+                return;
+            }
+            const filename = `${formId.value}_notes.md`;
+            downloadFile(filename, formNotes.value.trim());
+        });
+
+        // Helper trigger downloads
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==========================================================================
+        // RELATIONSHIP / LINKAGES MANAGEMENT LOGIC
+        // ==========================================================================
+        // (DOM variables relSourceSelect, relTargetSelect, etc. are declared globally at the top)
+
+        function populateRelationSelectors() {
+            const prevSrc = relSourceSelect.value;
+            const prevTgt = relTargetSelect.value;
+            
+            relSourceSelect.innerHTML = '<option value="">-- 选择源提案 A --</option>';
+            relTargetSelect.innerHTML = '<option value="">-- 选择目标提案 B --</option>';
+            
+            proposalsData.forEach(p => {
+                const optA = document.createElement('option');
+                optA.value = p.id;
+                optA.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
+                relSourceSelect.appendChild(optA);
+                
+                const optB = document.createElement('option');
+                optB.value = p.id;
+                optB.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
+                relTargetSelect.appendChild(optB);
+            });
+            
+            relSourceSelect.value = prevSrc;
+            relTargetSelect.value = prevTgt;
+        }
+
+        // Render current relationship list table
+        function populateRelationListTable() {
+            relationCountSpan.textContent = relationsData.length;
+            
+            if (relationsData.length === 0) {
+                relationsTbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="no-relations-placeholder">暂无联动关系</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            relationsTbody.innerHTML = '';
+            relationsData.forEach((rel, index) => {
+                const srcProp = proposalsData.find(p => p.id === rel.source) || { title: `未知提案 (#${rel.source})` };
+                const tgtProp = proposalsData.find(p => p.id === rel.target) || { title: `未知提案 (#${rel.target})` };
+                
+                let relName = rel.type;
+                if (rel.type === 'modified_from') relName = '✍️ 修改自/继承于';
+                else if (rel.type === 'depends_on') relName = '🛠️ 依赖前置';
+                else if (rel.type === 'related_to') relName = '🔗 联动/相关';
+                else if (rel.type === 'obsoleted_by') relName = '🚫 被废弃/取代';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHTML(srcProp.title)}</td>
+                    <td><span class="badge-table">${relName}</span></td>
+                    <td>${escapeHTML(tgtProp.title)}</td>
+                    <td><button class="delete-relation-btn" data-index="${index}"><i class="fa-solid fa-trash-can"></i> 删除</button></td>
+                `;
+                
+                relationsTbody.appendChild(tr);
+            });
+            
+            document.querySelectorAll('.delete-relation-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.index);
+                    relationsData.splice(idx, 1);
+                    populateRelationListTable();
+                });
+            });
+        }
+
+        // Add relationship
+        document.getElementById('btn-add-relation').addEventListener('click', () => {
+            const src = relSourceSelect.value;
+            const target = relTargetSelect.value;
+            const type = relTypeSelect.value;
+            
+            if (!src || !target) {
+                alert("请选择源提案 A 和目标提案 B！");
+                return;
+            }
+            
+            if (src === target) {
+                alert("源提案与目标提案不能是同个文件！");
+                return;
+            }
+            
+            const duplicate = relationsData.some(r => r.source === src && r.target === target && r.type === type);
+            if (duplicate) {
+                alert("该联动关系已存在！");
+                return;
+            }
+            
+            relationsData.push({
+                source: src,
+                type: type,
+                target: target
+            });
+            
+            populateRelationListTable();
+            relSourceSelect.value = '';
+            relTargetSelect.value = '';
+        });
+
+        // EXPORT LOGIC: RELATIONS.JSON
+        document.getElementById('btn-export-relations').addEventListener('click', () => {
+            const relationsJsonStr = JSON.stringify(relationsData, null, 2);
+            downloadFile('relations.json', relationsJsonStr);
+        });
+
+        // ==========================================================================
+        // CLOUDFLARE DATABASE SAVE AND MIGRATION LISTENERS
+        // ==========================================================================
+
+        // Save & Publish single proposal to D1 Database
+        dbSaveProposalBtn.addEventListener('click', async () => {
+            if (!formTitle.value || !formAuthor.value || !formDate.value || !formContent.value) {
+                alert("请填写所有的必填字段（标题、提案人、时间、正文内容）！");
+                return;
+            }
+            
+            const payload = {
+                id: formId.value.trim(),
+                title: formTitle.value.trim(),
+                status: formStatus.value.trim(),
+                author: formAuthor.value.trim(),
+                date: formDate.value.trim(),
+                content: formContent.value.trim(),
+                result: formResult.value.trim(),
+                notes: formNotes.value.trim(),
+                reactions: []
+            };
+            
+            // Retain existing reactions if editing
+            const existing = proposalsData.find(p => p.id === payload.id);
+            if (existing && existing.reactions) {
+                payload.reactions = existing.reactions;
+            }
+            
+            try {
+                dbSaveProposalBtn.disabled = true;
+                dbSaveProposalBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在发布中...';
+                
+                const res = await fetch(`${apiBase}/api/proposals/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) {
+                    throw new Error(resData.error || `HTTP ${res.status}`);
+                }
+                
+                alert("提案发布保存成功！");
+                await fetchProposalsData();
+                selectProposal(payload.id);
+                settingsModal.style.display = 'none';
+            } catch (err) {
+                alert("保存失败: " + err.message);
+            } finally {
+                dbSaveProposalBtn.disabled = false;
+                dbSaveProposalBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 保存并发布至云端数据库';
+            }
+        });
+
+        // Save & Publish relationships to D1 Database
+        dbSaveRelationsBtn.addEventListener('click', async () => {
+            try {
+                dbSaveRelationsBtn.disabled = true;
+                dbSaveRelationsBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在发布中...';
+                
+                const res = await fetch(`${apiBase}/api/relations/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify(relationsData)
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) {
+                    throw new Error(resData.error || `HTTP ${res.status}`);
+                }
+                
+                alert(`关系更新成功！已成功同步 ${relationsData.length} 条联动关联到云端。`);
+                await fetchProposalsData();
+                if (activeProposalId) {
+                    renderLinkages(activeProposalId);
+                }
+            } catch (err) {
+                alert("联动关系保存失败: " + err.message);
+            } finally {
+                dbSaveRelationsBtn.disabled = false;
+                dbSaveRelationsBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 保存联动关系至云端数据库';
+            }
+        });
+
+        // One-click Initial Migration to Cloud D1 Database
+        dbImportDataBtn.addEventListener('click', async () => {
+            if (!confirm("⚠️ 警告：这将会清空云端数据库上的现有记录，并将本地当前的 221 个提案及联动数据完整同步至云端。确定要继续吗？")) {
+                return;
+            }
+            
+            try {
+                dbImportDataBtn.disabled = true;
+                dbImportDataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在获取本地数据...';
+                
+                // Fetch local static index
+                const localListRes = await fetch('list.json?t=' + Date.now());
+                if (!localListRes.ok) throw new Error("无法读取本地的 list.json 静态数据包");
+                const localProposals = await localListRes.json();
+                
+                // Fetch local static relations
+                let localRelations = [];
+                try {
+                    const localRelRes = await fetch('relations.json?t=' + Date.now());
+                    if (localRelRes.ok) {
+                        localRelations = await localRelRes.json();
+                    }
+                } catch(e) {
+                    console.log("未读取到本地 relations.json，将以空关系集导入。");
+                }
+                
+                dbImportDataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在上传同步至 Cloudflare D1...';
+                
+                const res = await fetch(`${apiBase}/api/admin/import`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify({
+                        proposals: localProposals,
+                        relations: localRelations
+                    })
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) {
+                    throw new Error(resData.error || `HTTP ${res.status}`);
+                }
+                
+                alert("一键云端初始化导入成功！\n" + resData.message);
+                await fetchProposalsData();
+            } catch (err) {
+                alert("数据迁移导入失败: " + err.message);
+            } finally {
+                dbImportDataBtn.disabled = false;
+                dbImportDataBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 一键将本地数据导入至云端数据库';
+            }
+        });
+
+        // Start Fetching Data
+        fetchProposalsData();
+    </script>
+</body>
+</html>

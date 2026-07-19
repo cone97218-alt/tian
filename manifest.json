@@ -1,0 +1,30 @@
+{
+  "name": "类脑ΟΔΥΣΣΕΙΑ 提案讨论区",
+  "short_name": "类脑提案",
+  "description": "类脑ΟΔΥΣΣΕΙΑ 社区运营提案讨论记录库",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2b2d30",
+  "theme_color": "#8da08b",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/xjR80kH2/chaoxiao.webp",
+      "sizes": "575x575",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.postimg.cc/xjR80kH2/chaoxiao.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.postimg.cc/xjR80kH2/chaoxiao.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}
