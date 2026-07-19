@@ -314,8 +314,29 @@
                             </div>
                             <hr class="divider">
                             
-                            <div class="settings-info-card warning">
-                                <p>⚠️ **更新说明**：导出对应的文本文件后，您需要将其放置在您的 GitHub 仓库的 `proposals/` 文件夹下。如果是编辑已有提案，请务必保证 **提案ID** 保持一致，上传后 GitHub 会自动覆盖并重建索引。</p>
+                            <div class="settings-info-card warning" id="creator-warning-card">
+                                <p>⚠️ **本地模式说明**：导出对应的文本文件后，您需要将其放置在您的 GitHub 仓库的 `proposals/` 文件夹下。如果是编辑已有提案，请务必保证 **提案ID** 保持一致，上传后 GitHub 会自动覆盖并重建索引。</p>
+                            </div>
+
+                            <!-- Batch Upload Area for TXT/MD files -->
+                            <div class="batch-upload-container" id="batch-upload-box" style="display: none;">
+                                <h4><i class="fa-solid fa-file-import"></i> 批量导入并发布提案 (.txt / .md)</h4>
+                                <div class="file-drop-area" id="file-drop-area">
+                                    <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                                    <p class="drop-text">将多个 Discord 导出的 .txt 文件或 .md 文件拖到此处，或<strong>点击选择文件</strong></p>
+                                    <input type="file" id="batch-file-input" multiple accept=".txt,.md" style="display: none;">
+                                </div>
+                                <div id="batch-parsed-list-container" style="display: none; margin-top: 1rem;">
+                                    <div class="parsed-header">
+                                        <h5>已解析文件列表 (<span id="parsed-count">0</span>)</h5>
+                                        <button type="button" class="btn-primary btn-sm" id="btn-batch-upload-db">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端
+                                        </button>
+                                    </div>
+                                    <div class="parsed-list" id="batch-parsed-list">
+                                        <!-- Parsed items injected here -->
+                                    </div>
+                                </div>
                             </div>
                             
                             <form id="proposal-creator-form" class="creator-form">
@@ -522,6 +543,16 @@
         const dbSaveRelationsBtn = document.getElementById('btn-db-save-relations');
         const importDataGroup = document.getElementById('import-data-group');
         const dbImportDataBtn = document.getElementById('btn-db-import-data');
+
+        // Batch File Upload DOM elements cached
+        const batchUploadBox = document.getElementById('batch-upload-box');
+        const creatorWarningCard = document.getElementById('creator-warning-card');
+        const fileDropArea = document.getElementById('file-drop-area');
+        const batchFileInput = document.getElementById('batch-file-input');
+        const batchParsedListContainer = document.getElementById('batch-parsed-list-container');
+        const batchParsedList = document.getElementById('batch-parsed-list');
+        const parsedCountSpan = document.getElementById('parsed-count');
+        const btnBatchUploadDb = document.getElementById('btn-batch-upload-db');
         
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -627,10 +658,14 @@
                 dbSaveProposalBtn.style.display = 'inline-flex';
                 dbSaveRelationsBtn.style.display = 'inline-flex';
                 importDataGroup.style.display = 'block';
+                batchUploadBox.style.display = 'block';
+                creatorWarningCard.style.display = 'none';
             } else {
                 dbSaveProposalBtn.style.display = 'none';
                 dbSaveRelationsBtn.style.display = 'none';
                 importDataGroup.style.display = 'none';
+                batchUploadBox.style.display = 'none';
+                creatorWarningCard.style.display = 'block';
             }
         }
 
@@ -1507,6 +1542,331 @@ ${formContent.value.trim()}
                 dbImportDataBtn.disabled = false;
                 dbImportDataBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 一键将本地数据导入至云端数据库';
             }
+        });
+
+        // ==========================================================================
+        // BATCH FILE UPLOAD AND PARSING LOGIC
+        // ==========================================================================
+        let parsedFilesData = [];
+
+        // Clicking the drop area triggers the hidden file input
+        fileDropArea.addEventListener('click', () => {
+            batchFileInput.click();
+        });
+
+        // Highlight drop area on drag actions
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileDropArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileDropArea.classList.remove('dragover');
+            }, false);
+        });
+
+        // Handle drop event
+        fileDropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleSelectedFiles(files);
+        }, false);
+
+        // Handle file input selection event
+        batchFileInput.addEventListener('change', (e) => {
+            handleSelectedFiles(e.target.files);
+        });
+
+        // Process files
+        function handleSelectedFiles(files) {
+            if (files.length === 0) return;
+            
+            parsedFilesData = [];
+            batchParsedList.innerHTML = '';
+            batchParsedListContainer.style.display = 'block';
+            parsedCountSpan.textContent = files.length;
+
+            let loadedCount = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    const text = event.target.result;
+                    const parsed = parseUploadedFile(file.name, text, file.lastModified);
+                    parsed.originalFilename = file.name;
+                    parsedFilesData.push(parsed);
+
+                    // Append parsed item to visual list
+                    const item = document.createElement('div');
+                    item.className = 'parsed-item';
+                    
+                    let badgeClass = 'badge-info';
+                    let badgeText = '提案';
+                    let nameDisplay = parsed.title;
+                    
+                    if (parsed.isUpdateOnly) {
+                        badgeClass = parsed.type === 'result' ? 'badge-success' : 'badge-warning';
+                        badgeText = parsed.type === 'result' ? '结果更新' : '备注更新';
+                        nameDisplay = `提案 #${parsed.id.slice(-6)}`;
+                    } else {
+                        if (parsed.status === '已结束' || parsed.status === '已完成') badgeClass = 'badge-success';
+                        else if (parsed.status === '已否决') badgeClass = 'badge-danger';
+                        else if (['已废弃', '已关闭', '冻结中'].includes(parsed.status)) badgeClass = 'badge-danger';
+                    }
+
+                    item.innerHTML = `
+                        <div class="parsed-file-info">
+                            <span class="parsed-filename">${escapeHTML(nameDisplay)}</span>
+                            <span class="parsed-meta">文件: ${escapeHTML(file.name)}</span>
+                        </div>
+                        <div class="parsed-status-container">
+                            <span class="parsed-status-badge ${badgeClass}">${badgeText}</span>
+                            <span class="upload-indicator" id="ind-${escapeHTML(file.name.replace(/[^\w]/g, ''))}"><i class="fa-regular fa-clock" style="color: var(--text-secondary);"></i></span>
+                        </div>
+                    `;
+                    batchParsedList.appendChild(item);
+
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        // All files parsed and ready
+                        btnBatchUploadDb.disabled = false;
+                        btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端';
+                    }
+                };
+
+                reader.onerror = () => {
+                    alert(`读取文件 ${file.name} 失败！`);
+                };
+
+                reader.readAsText(file);
+            });
+        }
+
+        // JS Parser for Discord txt exports & standard md files
+        function parseUploadedFile(filename, text, lastModified) {
+            // 1. Check if it's a separate result/notes file e.g. "1520398791772078111_result.md"
+            const resultMatch = filename.match(/^(\d+)_(result|notes)\.(md|txt)$/i);
+            if (resultMatch) {
+                const id = resultMatch[1];
+                const type = resultMatch[2]; // 'result' or 'notes'
+                return {
+                    isUpdateOnly: true,
+                    id: id,
+                    type: type,
+                    content: text.trim()
+                };
+            }
+
+            // 2. Check if it matches Discord export header format
+            const channelMatch = text.match(/Channel:\s*(.*?)\s*\/.*\[(.*?)\]\s*(.*?)\s*\[(\d+)\]/i);
+            if (channelMatch) {
+                const status = channelMatch[2].trim();
+                const title = channelMatch[3].trim();
+                const id = channelMatch[4].trim();
+                
+                const authorMatch = text.match(/\*\*\*提案人:\s*@?(.*?)\*\*\*/);
+                const author = authorMatch ? authorMatch[1].trim() : "未知提案人";
+                
+                const dateMatch = text.match(/\[(\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2})\]/);
+                const date = dateMatch ? dateMatch[1].trim() : "未知时间";
+                
+                // Extract content
+                let content = text;
+                const dividerIndex = text.indexOf("==============================================================");
+                if (dividerIndex !== -1) {
+                    const secondDivider = text.indexOf("==============================================================", dividerIndex + 50);
+                    if (secondDivider !== -1) {
+                        content = text.substring(secondDivider + 62);
+                    }
+                }
+                
+                content = content.replace(/\*讨论帖创建时间:.*$/, '').trim();
+                
+                let result = "";
+                let notes = "";
+                
+                const resultIndex = content.indexOf("> ## 提案结果");
+                const notesIndex = content.indexOf("> ## 备注");
+                
+                if (resultIndex !== -1 && notesIndex !== -1) {
+                    if (resultIndex < notesIndex) {
+                        result = content.substring(resultIndex + 8, notesIndex).trim();
+                        notes = content.substring(notesIndex + 6).trim();
+                        content = content.substring(0, resultIndex).trim();
+                    } else {
+                        notes = content.substring(notesIndex + 6, resultIndex).trim();
+                        result = content.substring(resultIndex + 8).trim();
+                        content = content.substring(0, notesIndex).trim();
+                    }
+                } else if (resultIndex !== -1) {
+                    result = content.substring(resultIndex + 8).trim();
+                    content = content.substring(0, resultIndex).trim();
+                } else if (notesIndex !== -1) {
+                    notes = content.substring(notesIndex + 6).trim();
+                    content = content.substring(0, notesIndex).trim();
+                }
+                
+                return {
+                    isUpdateOnly: false,
+                    id,
+                    title,
+                    status,
+                    author,
+                    date,
+                    content,
+                    result,
+                    notes
+                };
+            }
+
+            // 3. Check if filename matches "[Status] Title [ID]" format
+            const filenameMatch = filename.match(/^\[(.*?)\]\s*(.*?)\s*\[(\d+)\]\.(md|txt)$/i);
+            if (filenameMatch) {
+                const status = filenameMatch[1].trim();
+                const title = filenameMatch[2].trim();
+                const id = filenameMatch[3].trim();
+                
+                const authorMatch = text.match(/\*\*\*提案人:\s*@?(.*?)\*\*\*/);
+                const author = authorMatch ? authorMatch[1].trim() : "未知提案人";
+                
+                const dateMatch = text.match(/\[(\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2})\]/);
+                let date = dateMatch ? dateMatch[1].trim() : "";
+                if (!date && lastModified) {
+                    const d = new Date(lastModified);
+                    date = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                } else if (!date) {
+                    date = "未知时间";
+                }
+                
+                let content = text.trim();
+                let result = "";
+                let notes = "";
+                
+                const resultIndex = content.indexOf("> ## 提案结果");
+                const notesIndex = content.indexOf("> ## 备注");
+                if (resultIndex !== -1) {
+                    result = content.substring(resultIndex + 8).trim();
+                    content = content.substring(0, resultIndex).trim();
+                }
+                if (notesIndex !== -1) {
+                    notes = content.substring(notesIndex + 6).trim();
+                    content = content.substring(0, notesIndex).trim();
+                }
+                
+                return {
+                    isUpdateOnly: false,
+                    id,
+                    title,
+                    status,
+                    author,
+                    date,
+                    content,
+                    result,
+                    notes
+                };
+            }
+
+            // 4. Default fallback: create a proposal with file ID or generated ID
+            const randomId = Date.now().toString() + Math.floor(100 + Math.random() * 900).toString();
+            const cleanTitle = filename.replace(/\.(md|txt)$/i, '').trim();
+            return {
+                isUpdateOnly: false,
+                id: randomId,
+                title: cleanTitle,
+                status: "讨论中",
+                author: "网页导入",
+                date: new Date().toLocaleDateString(),
+                content: text.trim(),
+                result: "",
+                notes: ""
+            };
+        }
+
+        // Upload parsed files to cloud database sequentially
+        btnBatchUploadDb.addEventListener('click', async () => {
+            if (parsedFilesData.length === 0) return;
+            if (!adminPasscode) {
+                alert("⚠️ 请在 [常规设置] 中填写管理员管理密码后，再上传数据！");
+                return;
+            }
+            
+            btnBatchUploadDb.disabled = true;
+            btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在上传数据...';
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < parsedFilesData.length; i++) {
+                const parsed = parsedFilesData[i];
+                const cleanFilename = parsed.originalFilename.replace(/[^\w]/g, '');
+                const indicator = document.getElementById(`ind-${cleanFilename}`);
+                
+                if (indicator) {
+                    indicator.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color: var(--accent-color);"></i>';
+                }
+
+                try {
+                    let payload = parsed;
+                    let endpoint = `${apiBase}/api/proposals/submit`;
+
+                    // If it's a separate result/notes file update
+                    if (parsed.isUpdateOnly) {
+                        const existing = proposalsData.find(p => p.id === parsed.id);
+                        if (!existing) {
+                            throw new Error(`未能在当前数据库中找到匹配 ID 的提案 (#${parsed.id})，无法更新结果/备注！`);
+                        }
+                        payload = {
+                            ...existing,
+                            result: parsed.type === 'result' ? parsed.content : existing.result,
+                            notes: parsed.type === 'notes' ? parsed.content : existing.notes
+                        };
+                    } else {
+                        // If standard import, preserve existing reactions
+                        const existing = proposalsData.find(p => p.id === parsed.id);
+                        if (existing && existing.reactions) {
+                            payload.reactions = existing.reactions;
+                        }
+                    }
+
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminPasscode}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resData = await res.json();
+                    if (!res.ok) {
+                        throw new Error(resData.error || `HTTP ${res.status}`);
+                    }
+
+                    successCount++;
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fa-solid fa-circle-check" style="color: var(--color-ended);"></i>';
+                    }
+                } catch (err) {
+                    errorCount++;
+                    console.error("Batch upload failed for", parsed.originalFilename, err);
+                    if (indicator) {
+                        indicator.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color: var(--color-rejected);" title="${escapeHTML(err.message)}"></i>`;
+                    }
+                }
+            }
+
+            alert(`批量发布完成！\n成功: ${successCount} 个文件\n失败: ${errorCount} 个文件`);
+            await fetchProposalsData();
+            
+            btnBatchUploadDb.disabled = false;
+            btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端';
         });
 
         // Start Fetching Data
