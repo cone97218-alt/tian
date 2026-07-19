@@ -412,6 +412,10 @@
                                     <button type="button" class="btn-primary" id="btn-db-save-proposal" style="display: none;">
                                         <i class="fa-solid fa-cloud-arrow-up"></i> 保存并发布至云端数据库
                                     </button>
+                                    <!-- Cloud DB Mode Delete Button -->
+                                    <button type="button" class="btn-danger" id="btn-db-delete-proposal" style="display: none; background-color: var(--color-rejected); color: white;">
+                                        <i class="fa-solid fa-trash-can"></i> 删除当前云端提案
+                                    </button>
                                     <!-- File Export backup options -->
                                     <button type="button" class="btn-secondary" id="btn-export-proposal">
                                         <i class="fa-solid fa-file-arrow-down"></i> 导出备份 (.txt)
@@ -543,6 +547,7 @@
         const dbSaveRelationsBtn = document.getElementById('btn-db-save-relations');
         const importDataGroup = document.getElementById('import-data-group');
         const dbImportDataBtn = document.getElementById('btn-db-import-data');
+        const dbDeleteProposalBtn = document.getElementById('btn-db-delete-proposal');
 
         // Batch File Upload DOM elements cached
         const batchUploadBox = document.getElementById('batch-upload-box');
@@ -646,6 +651,15 @@
             }
         });
 
+        // Helper to update the visibility of the delete proposal button
+        function updateDeleteButtonVisibility() {
+            if (apiBase && formEditSelect.value) {
+                dbDeleteProposalBtn.style.display = 'inline-flex';
+            } else {
+                dbDeleteProposalBtn.style.display = 'none';
+            }
+        }
+
         // Update API values and visibility based on user input
         function updateAPIVisibility() {
             apiBase = apiBaseInput.value.trim().replace(/\/$/, '');
@@ -667,6 +681,7 @@
                 batchUploadBox.style.display = 'none';
                 creatorWarningCard.style.display = 'block';
             }
+            updateDeleteButtonVisibility();
         }
 
         // Initialize API inputs
@@ -1152,6 +1167,7 @@
             const formEditSelect = document.getElementById('form-edit-select');
             formEditSelect.value = activeProposalId;
             prefillCreatorFormFields(activeProposalId);
+            updateDeleteButtonVisibility();
         });
 
         // ==========================================================================
@@ -1187,11 +1203,13 @@
             } else {
                 resetCreatorForm();
             }
+            updateDeleteButtonVisibility();
         });
         
         creatorResetBtn.addEventListener('click', () => {
             formEditSelect.value = '';
             resetCreatorForm();
+            updateDeleteButtonVisibility();
         });
         
         function resetCreatorForm() {
@@ -1205,6 +1223,7 @@
             formContent.value = '';
             formResult.value = '';
             formNotes.value = '';
+            updateDeleteButtonVisibility();
         }
         
         function prefillCreatorFormFields(pid) {
@@ -1219,6 +1238,7 @@
             formContent.value = p.content || '';
             formResult.value = p.result || '';
             formNotes.value = p.notes || '';
+            updateDeleteButtonVisibility();
         }
 
         // EXPORT LOGIC: PROPOSAL TXT
@@ -1453,6 +1473,55 @@ ${formContent.value.trim()}
             } finally {
                 dbSaveProposalBtn.disabled = false;
                 dbSaveProposalBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 保存并发布至云端数据库';
+            }
+        });
+
+        // Delete proposal from Cloud D1 Database
+        dbDeleteProposalBtn.addEventListener('click', async () => {
+            const pid = formId.value.trim();
+            if (!pid) return;
+            
+            const title = formTitle.value.trim() || `ID: ${pid}`;
+            
+            if (!confirm(`⚠️ 警告：您确定要从云端数据库中【彻底删除】提案《${title}》及其所有联动关系吗？此操作无法撤销！`)) {
+                return;
+            }
+            
+            try {
+                dbDeleteProposalBtn.disabled = true;
+                dbDeleteProposalBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在删除中...';
+                
+                const res = await fetch(`${apiBase}/api/proposals/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify({ id: pid })
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) {
+                    throw new Error(resData.error || `HTTP ${res.status}`);
+                }
+                
+                alert("提案已彻底从云端删除！");
+                
+                // Reset form
+                formEditSelect.value = '';
+                resetCreatorForm();
+                updateDeleteButtonVisibility();
+                
+                // Refresh data
+                await fetchProposalsData();
+                
+                // Close settings
+                settingsModal.style.display = 'none';
+            } catch (err) {
+                alert("删除失败: " + err.message);
+            } finally {
+                dbDeleteProposalBtn.disabled = false;
+                dbDeleteProposalBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> 删除当前云端提案';
             }
         });
 
