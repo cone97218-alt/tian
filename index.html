@@ -1965,8 +1965,9 @@ ${formContent.value.trim()}
         // ==========================================================================
         let parsedFilesData = [];
 
-        // Clicking the drop area triggers the hidden file input
+        // Clicking the drop area triggers the hidden file input (clears value first to support repeated selections of the same file)
         fileDropArea.addEventListener('click', () => {
+            batchFileInput.value = '';
             batchFileInput.click();
         });
 
@@ -1999,15 +2000,11 @@ ${formContent.value.trim()}
             handleSelectedFiles(e.target.files);
         });
 
-        // Process files
+        // Process files (Appends files across multiple selections without overwriting, supports custom removal)
         function handleSelectedFiles(files) {
             if (files.length === 0) return;
             
-            parsedFilesData = [];
-            batchParsedList.innerHTML = '';
             batchParsedListContainer.style.display = 'block';
-            parsedCountSpan.textContent = files.length;
-
             let loadedCount = 0;
 
             Array.from(files).forEach(file => {
@@ -2017,11 +2014,26 @@ ${formContent.value.trim()}
                     const text = event.target.result;
                     const parsed = parseUploadedFile(file.name, text, file.lastModified);
                     parsed.originalFilename = file.name;
-                    parsedFilesData.push(parsed);
+                    
+                    const cleanFilename = file.name.replace(/[^\w]/g, '');
+                    
+                    // Overwrite/replace if filename already exists in the staging list
+                    const existingIndex = parsedFilesData.findIndex(p => p.originalFilename === file.name);
+                    if (existingIndex !== -1) {
+                        parsedFilesData[existingIndex] = parsed;
+                        const existingNode = batchParsedList.querySelector(`.parsed-item[data-filename="${cleanFilename}"]`);
+                        if (existingNode) existingNode.remove();
+                    } else {
+                        parsedFilesData.push(parsed);
+                    }
+                    
+                    // Update global count indicator
+                    parsedCountSpan.textContent = parsedFilesData.length;
 
                     // Append parsed item to visual list
                     const item = document.createElement('div');
                     item.className = 'parsed-item';
+                    item.dataset.filename = cleanFilename;
                     
                     let badgeClass = 'badge-info';
                     let badgeText = '提案';
@@ -2042,16 +2054,28 @@ ${formContent.value.trim()}
                             <span class="parsed-filename">${escapeHTML(nameDisplay)}</span>
                             <span class="parsed-meta">文件: ${escapeHTML(file.name)}</span>
                         </div>
-                        <div class="parsed-status-container">
+                        <div class="parsed-status-container" style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="parsed-status-badge ${badgeClass}">${badgeText}</span>
-                            <span class="upload-indicator" id="ind-${escapeHTML(file.name.replace(/[^\w]/g, ''))}"><i class="fa-regular fa-clock" style="color: var(--text-secondary);"></i></span>
+                            <span class="upload-indicator" id="ind-${cleanFilename}"><i class="fa-regular fa-clock" style="color: var(--text-secondary);"></i></span>
+                            <button type="button" class="btn-remove-parsed" title="从列表中移除" style="background: none; border: none; color: var(--color-rejected); cursor: pointer; font-size: 0.85rem; padding: 0.1rem 0.3rem;"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     `;
+
+                    // Bind item remove listener
+                    item.querySelector('.btn-remove-parsed').addEventListener('click', () => {
+                        parsedFilesData = parsedFilesData.filter(p => p.originalFilename !== file.name);
+                        parsedCountSpan.textContent = parsedFilesData.length;
+                        item.remove();
+                        if (parsedFilesData.length === 0) {
+                            batchParsedListContainer.style.display = 'none';
+                        }
+                    });
+
                     batchParsedList.appendChild(item);
 
                     loadedCount++;
                     if (loadedCount === files.length) {
-                        // All files parsed and ready
+                        // Activate buttons after loading this round
                         btnBatchUploadDb.disabled = false;
                         btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端';
                     }
@@ -2255,6 +2279,7 @@ ${formContent.value.trim()}
 
             let successCount = 0;
             let errorCount = 0;
+            const failedItems = [];
 
             for (let i = 0; i < parsedFilesData.length; i++) {
                 const parsed = parsedFilesData[i];
@@ -2306,8 +2331,17 @@ ${formContent.value.trim()}
                     if (indicator) {
                         indicator.innerHTML = '<i class="fa-solid fa-circle-check" style="color: var(--color-ended);"></i>';
                     }
+
+                    // Remove successfully uploaded items from uploader DOM list after a short delay
+                    const node = batchParsedList.querySelector(`.parsed-item[data-filename="${cleanFilename}"]`);
+                    if (node) {
+                        setTimeout(() => {
+                            node.remove();
+                        }, 1200);
+                    }
                 } catch (err) {
                     errorCount++;
+                    failedItems.push(parsed);
                     console.error("Batch upload failed for", parsed.originalFilename, err);
                     if (indicator) {
                         indicator.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color: var(--color-rejected);" title="${escapeHTML(err.message)}"></i>`;
@@ -2315,11 +2349,19 @@ ${formContent.value.trim()}
                 }
             }
 
+            parsedFilesData = failedItems;
+            parsedCountSpan.textContent = parsedFilesData.length;
+
             alert(`批量发布完成！\n成功: ${successCount} 个文件\n失败: ${errorCount} 个文件`);
             await fetchProposalsData();
             
             btnBatchUploadDb.disabled = false;
             btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端';
+
+            if (parsedFilesData.length === 0) {
+                batchParsedListContainer.style.display = 'none';
+                batchFileInput.value = '';
+            }
         });
 
         // CLOUD SNAPSHOTS / HISTORY LOGIC
