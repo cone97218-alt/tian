@@ -413,19 +413,26 @@
                                         <i class="fa-solid fa-cloud-arrow-up"></i> 保存并发布至云端数据库
                                     </button>
                                     <!-- Cloud DB Mode Delete Button -->
-                                    <button type="button" class="btn-danger" id="btn-db-delete-proposal" style="display: none; background-color: var(--color-rejected); color: white;">
+                                    <button type="button" class="btn-danger" id="btn-db-delete-proposal" style="display: none;">
                                         <i class="fa-solid fa-trash-can"></i> 删除当前云端提案
                                     </button>
-                                    <!-- File Export backup options -->
-                                    <button type="button" class="btn-secondary" id="btn-export-proposal">
-                                        <i class="fa-solid fa-file-arrow-down"></i> 导出备份 (.txt)
-                                    </button>
-                                    <button type="button" class="btn-secondary" id="btn-export-result">
-                                        <i class="fa-solid fa-square-check"></i> 导出结果文件 (.md)
-                                    </button>
-                                    <button type="button" class="btn-secondary" id="btn-export-notes">
-                                        <i class="fa-solid fa-note-sticky"></i> 导出备注文件 (.md)
-                                    </button>
+                                </div>
+
+                                <div class="advanced-export-section">
+                                    <div class="advanced-export-toggle" id="btn-toggle-exports">
+                                        <i class="fa-solid fa-chevron-right toggle-icon"></i> 更多文件备份导出选项 (本地 .md / .txt 备份)
+                                    </div>
+                                    <div class="advanced-export-panel" id="exports-panel" style="display: none;">
+                                        <button type="button" class="btn-secondary" id="btn-export-proposal">
+                                            <i class="fa-solid fa-file-arrow-down"></i> 导出备份 (.txt)
+                                        </button>
+                                        <button type="button" class="btn-secondary" id="btn-export-result">
+                                            <i class="fa-solid fa-square-check"></i> 导出结果文件 (.md)
+                                        </button>
+                                        <button type="button" class="btn-secondary" id="btn-export-notes">
+                                            <i class="fa-solid fa-note-sticky"></i> 导出备注文件 (.md)
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -1291,6 +1298,14 @@ ${formContent.value.trim()}
             }
             const filename = `${formId.value}_notes.md`;
             downloadFile(filename, formNotes.value.trim());
+        });
+
+        // Toggle advanced export options panel collapse
+        const btnToggleExports = document.getElementById('btn-toggle-exports');
+        const exportsPanel = document.getElementById('exports-panel');
+        btnToggleExports.addEventListener('click', () => {
+            const isExpanded = btnToggleExports.classList.toggle('expanded');
+            exportsPanel.style.display = isExpanded ? 'flex' : 'none';
         });
 
         // Helper trigger downloads
