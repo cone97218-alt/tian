@@ -1,0 +1,10 @@
+# Ignore local raw proposal source files
+proposals/
+
+# Ignore local compiled JSON databases (data resides in Cloudflare D1 instead)
+list.json
+relations.json
+
+# Ignore temporary local batch and test scripts
+*.bat
+check_js.js
