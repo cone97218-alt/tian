@@ -30,6 +30,7 @@
     <!-- External libraries loaded via CDN for high performance and security -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div id="app-container" class="app-container">
@@ -82,6 +83,18 @@
                     <button id="clear-search" class="clear-search-btn" style="display: none;">&times;</button>
                 </div>
                 
+                <div class="search-scope-section">
+                    <span class="filters-label">搜索范围：</span>
+                    <select id="search-scope" class="search-scope-select">
+                        <option value="all">🔍 全部内容</option>
+                        <option value="title">📝 仅标题</option>
+                        <option value="content">📖 提案正文</option>
+                        <option value="result">✅ 执行结果</option>
+                        <option value="notes">📌 提案备注</option>
+                        <option value="author">👤 提案人</option>
+                    </select>
+                </div>
+                
                 <!-- Date Filter Section -->
                 <div class="date-filter-section">
                     <span class="filters-label">时间范围：</span>
@@ -112,6 +125,9 @@
                         <button class="filter-tag" data-status="已否决">已否决</button>
                         <button class="filter-tag" data-status="已废弃,已关闭">已废弃/关闭</button>
                         <button class="filter-tag" data-status="异议">异议</button>
+                        <button class="filter-tag" data-status="drafts" id="filter-tag-drafts" style="background-color: rgba(235, 203, 139, 0.08); border-color: rgba(235, 203, 139, 0.2); color: #ebcb8b; font-weight: bold;">
+                            <i class="fa-solid fa-file-signature"></i> 草稿箱 (<span id="draft-count-badge">0</span>)
+                        </button>
                     </div>
                 </div>
                 
@@ -151,6 +167,19 @@
                 
                 <!-- Detailed Proposal Viewer (Hidden initially) -->
                 <div class="proposal-detail-view" id="proposal-detail-view" style="display: none;">
+                    <!-- Draft Preview Banner -->
+                    <div class="draft-preview-banner" id="draft-preview-banner" style="display: none;">
+                        <span><i class="fa-solid fa-file-signature"></i> <strong>本地草稿预览</strong>：此提案尚未同步至云端数据库。</span>
+                        <div class="draft-banner-actions">
+                            <button type="button" class="btn-primary btn-sm" id="btn-publish-single-draft">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> 立即发布
+                            </button>
+                            <button type="button" class="btn-danger btn-sm" id="btn-delete-single-draft" style="background-color: var(--color-rejected); color: white;">
+                                <i class="fa-solid fa-trash-can"></i> 删除草稿
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="reader-header-actions">
                         <button class="mobile-back-btn" id="mobile-back-btn">
                             <i class="fa-solid fa-arrow-left"></i>
@@ -256,6 +285,9 @@
                         <button class="settings-tab-btn" data-target="tab-linkages">
                             <i class="fa-solid fa-diagram-project"></i>联动关系管理
                         </button>
+                        <button class="settings-tab-btn" data-target="tab-cloud-history" id="tab-btn-history" style="display: none;">
+                            <i class="fa-solid fa-clock-rotate-left"></i>云端版本历史
+                        </button>
                     </div>
                     
                     <!-- Tabs Content Areas -->
@@ -296,6 +328,19 @@
                                 </button>
                                 <p class="setting-desc">如果是首次配置 Cloudflare，点击此按钮可将当前本地的 221 条记录和关系一键导入云端。</p>
                             </div>
+
+                            <div class="settings-form-group" id="export-archive-group">
+                                <label>数据一键打包本地备份存档</label>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn-secondary" id="btn-db-export-archive-zip" style="width: auto;">
+                                        <i class="fa-solid fa-file-zipper"></i> 一键打包导出提案 (ZIP 压缩包)
+                                    </button>
+                                    <button type="button" class="btn-secondary" id="btn-db-export-archive-json" style="width: auto;">
+                                        <i class="fa-solid fa-file-code"></i> 导出完整备份 (JSON 存档)
+                                    </button>
+                                </div>
+                                <p class="setting-desc">一键拉取并打包当前所有的提案和联动。ZIP 压缩包内会包含每个提案生成的 Discord 纯文本文件以及关系对照表，用于本地离线存档。</p>
+                            </div>
                             
                             <div class="settings-info-card">
                                 <h4>💡 PWA (离线应用) 说明</h4>
@@ -327,11 +372,16 @@
                                     <input type="file" id="batch-file-input" multiple accept=".txt,.md" style="display: none;">
                                 </div>
                                 <div id="batch-parsed-list-container" style="display: none; margin-top: 1rem;">
-                                    <div class="parsed-header">
+                                    <div class="parsed-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; width: 100%;">
                                         <h5>已解析文件列表 (<span id="parsed-count">0</span>)</h5>
-                                        <button type="button" class="btn-primary btn-sm" id="btn-batch-upload-db">
-                                            <i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端
-                                        </button>
+                                        <div style="display: flex; gap: 0.4rem;">
+                                            <button type="button" class="btn-secondary btn-sm" id="btn-batch-to-drafts" style="background-color: var(--card-bg); border-color: rgba(235, 203, 139, 0.3); color: #ebcb8b; font-weight: 600;">
+                                                <i class="fa-solid fa-file-signature"></i> 导入本地草稿预览
+                                            </button>
+                                            <button type="button" class="btn-primary btn-sm" id="btn-batch-upload-db">
+                                                <i class="fa-solid fa-cloud-arrow-up"></i> 批量上传云端
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="parsed-list" id="batch-parsed-list">
                                         <!-- Parsed items injected here -->
@@ -502,6 +552,27 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- TAB 4: Cloud Backups & Version History -->
+                        <div class="tab-pane" id="tab-cloud-history">
+                            <h3>云端版本备份与历史回滚</h3>
+                            <hr class="divider">
+                            <p class="setting-desc">云端数据库在检测到提案修改、更新或一键同步覆盖动作前，会自动为您备份快照归档。您可以在此随时选择某一历史版本进行回滚恢复。</p>
+                            
+                            <div class="history-manager-wrapper" style="margin-top: 1.5rem;">
+                                <div class="parsed-header" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <h5>云端快照历史记录 (<span id="history-count">0</span>)</h5>
+                                    <button type="button" class="btn-secondary btn-sm" id="btn-refresh-history">
+                                        <i class="fa-solid fa-rotate-right"></i> 刷新历史列表
+                                    </button>
+                                </div>
+                                <div class="history-list" id="cloud-history-list">
+                                    <div class="loading-state" style="padding: 2rem; text-align: center; font-size: 0.75rem;">
+                                        <p>点击上方按钮加载或刷新云端历史记录</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                     </div>
                 </div>
@@ -514,6 +585,7 @@
         // Global State variables
         let proposalsData = [];
         let relationsData = [];
+        let draftProposals = JSON.parse(localStorage.getItem('draft-proposals') || '[]');
         let currentFilter = 'all';
         let currentSearch = '';
         let activeProposalId = null;
@@ -555,6 +627,8 @@
         const importDataGroup = document.getElementById('import-data-group');
         const dbImportDataBtn = document.getElementById('btn-db-import-data');
         const dbDeleteProposalBtn = document.getElementById('btn-db-delete-proposal');
+        const btnDbExportArchiveZip = document.getElementById('btn-db-export-archive-zip');
+        const btnDbExportArchiveJson = document.getElementById('btn-db-export-archive-json');
 
         // Batch File Upload DOM elements cached
         const batchUploadBox = document.getElementById('batch-upload-box');
@@ -577,6 +651,21 @@
         const formResult = document.getElementById('form-result');
         const formNotes = document.getElementById('form-notes');
         const creatorResetBtn = document.getElementById('creator-reset-btn');
+        
+        // New features DOM selectors (Search scope, Drafts, History)
+        const searchScopeSelect = document.getElementById('search-scope');
+        const draftCountBadge = document.getElementById('draft-count-badge');
+        const filterTagDrafts = document.getElementById('filter-tag-drafts');
+        const btnBatchToDrafts = document.getElementById('btn-batch-to-drafts');
+        
+        const draftPreviewBanner = document.getElementById('draft-preview-banner');
+        const btnPublishSingleDraft = document.getElementById('btn-publish-single-draft');
+        const btnDeleteSingleDraft = document.getElementById('btn-delete-single-draft');
+        
+        const tabBtnHistory = document.getElementById('tab-btn-history');
+        const btnRefreshHistory = document.getElementById('btn-refresh-history');
+        const cloudHistoryList = document.getElementById('cloud-history-list');
+        const historyCountSpan = document.getElementById('history-count');
         
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -652,11 +741,116 @@
             });
         });
 
+        // Helper to turn standard select dropdowns into searchable input dropdown comboboxes
+        function makeSelectSearchable(selectEl, placeholder) {
+            if (!selectEl || selectEl.dataset.searchableInitialized) return;
+            selectEl.dataset.searchableInitialized = 'true';
+            
+            // Hide original select element
+            selectEl.style.display = 'none';
+            
+            // Create wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'searchable-select-wrapper';
+            selectEl.parentNode.insertBefore(wrapper, selectEl);
+            
+            // Create input text field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control-input search-select-input';
+            input.placeholder = placeholder || '-- 搜索并选择 --';
+            input.autocomplete = 'off';
+            wrapper.appendChild(input);
+            
+            // Create custom dropdown list container
+            const dropdown = document.createElement('div');
+            dropdown.className = 'search-select-dropdown';
+            dropdown.style.display = 'none';
+            wrapper.appendChild(dropdown);
+            
+            // Synchronize input text with the selected option text
+            function syncInputText() {
+                const selectedOpt = selectEl.options[selectEl.selectedIndex];
+                input.value = selectedOpt && selectEl.value ? selectedOpt.textContent : '';
+            }
+            
+            // Initial sync
+            syncInputText();
+            
+            // Render dropdown list of options dynamically
+            function buildDropdownList(filterText = '') {
+                dropdown.innerHTML = '';
+                const query = filterText.toLowerCase();
+                let matchCount = 0;
+                
+                Array.from(selectEl.options).forEach(opt => {
+                    const text = opt.textContent;
+                    if (query && !text.toLowerCase().includes(query)) return;
+                    
+                    matchCount++;
+                    const optDiv = document.createElement('div');
+                    optDiv.className = `search-select-option ${opt.value === selectEl.value ? 'selected' : ''}`;
+                    optDiv.textContent = text;
+                    optDiv.dataset.value = opt.value;
+                    
+                    optDiv.addEventListener('mousedown', (e) => {
+                        e.preventDefault(); // prevent input blur
+                        selectEl.value = opt.value;
+                        selectEl.dispatchEvent(new Event('change'));
+                        syncInputText();
+                        dropdown.style.display = 'none';
+                    });
+                    
+                    dropdown.appendChild(optDiv);
+                });
+                
+                if (matchCount === 0) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'search-select-option';
+                    emptyDiv.style.color = 'var(--text-secondary)';
+                    emptyDiv.style.textAlign = 'center';
+                    emptyDiv.textContent = '无匹配选项';
+                    dropdown.appendChild(emptyDiv);
+                }
+            }
+            
+            // Bind input events
+            input.addEventListener('focus', () => {
+                buildDropdownList(input.value);
+                dropdown.style.display = 'block';
+            });
+            
+            input.addEventListener('input', () => {
+                buildDropdownList(input.value);
+                dropdown.style.display = 'block';
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    dropdown.style.display = 'none';
+                    syncInputText();
+                }, 200);
+            });
+            
+            // Register sync handler globally on the select element object
+            selectEl.syncSearchableSelect = syncInputText;
+        }
+
         // Open/Close settings modals
         settingsToggle.addEventListener('click', () => {
             settingsModal.style.display = 'flex';
             populateCreatorFormSelectors();
             populateRelationSelectors();
+            
+            // Initialize searchable dropdown selectors
+            makeSelectSearchable(formEditSelect, '🔍 搜索并选择载入已有提案...');
+            makeSelectSearchable(relSourceSelect, '🔍 搜索并选择源提案 A...');
+            makeSelectSearchable(relTargetSelect, '🔍 搜索并选择目标提案 B...');
+            
+            // Sync searchable options display values
+            if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
+            if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
+            if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
         });
         
         closeSettingsBtn.addEventListener('click', () => {
@@ -693,12 +887,14 @@
                 importDataGroup.style.display = 'block';
                 batchUploadBox.style.display = 'block';
                 creatorWarningCard.style.display = 'none';
+                tabBtnHistory.style.display = 'block';
             } else {
                 dbSaveProposalBtn.style.display = 'none';
                 dbSaveRelationsBtn.style.display = 'none';
                 importDataGroup.style.display = 'none';
                 batchUploadBox.style.display = 'none';
                 creatorWarningCard.style.display = 'block';
+                tabBtnHistory.style.display = 'none';
             }
             updateDeleteButtonVisibility();
         }
@@ -774,11 +970,12 @@
         // Combined Filter and Search matching
         function getFilteredData() {
             const now = new Date();
+            const dataSource = (currentFilter === 'drafts') ? draftProposals : proposalsData;
             
-            return proposalsData.filter(proposal => {
+            return dataSource.filter(proposal => {
                 // 1. Filter by Status
                 let matchesStatus = true;
-                if (currentFilter !== 'all') {
+                if (currentFilter !== 'all' && currentFilter !== 'drafts') {
                     const statuses = currentFilter.split(',');
                     matchesStatus = statuses.includes(proposal.status);
                 }
@@ -787,11 +984,27 @@
                 let matchesSearch = true;
                 if (currentSearch) {
                     const query = currentSearch.toLowerCase();
-                    matchesSearch = 
-                        proposal.title.toLowerCase().includes(query) || 
-                        proposal.author.toLowerCase().includes(query) || 
-                        proposal.id.includes(query) ||
-                        (proposal.content && proposal.content.toLowerCase().includes(query));
+                    const scope = searchScopeSelect.value;
+                    
+                    if (scope === 'all') {
+                        matchesSearch = 
+                            proposal.title.toLowerCase().includes(query) || 
+                            proposal.author.toLowerCase().includes(query) || 
+                            proposal.id.includes(query) ||
+                            (proposal.content && proposal.content.toLowerCase().includes(query)) ||
+                            (proposal.result && proposal.result.toLowerCase().includes(query)) ||
+                            (proposal.notes && proposal.notes.toLowerCase().includes(query));
+                    } else if (scope === 'title') {
+                        matchesSearch = proposal.title.toLowerCase().includes(query);
+                    } else if (scope === 'content') {
+                        matchesSearch = proposal.content && proposal.content.toLowerCase().includes(query);
+                    } else if (scope === 'result') {
+                        matchesSearch = proposal.result && proposal.result.toLowerCase().includes(query);
+                    } else if (scope === 'notes') {
+                        matchesSearch = proposal.notes && proposal.notes.toLowerCase().includes(query);
+                    } else if (scope === 'author') {
+                        matchesSearch = proposal.author.toLowerCase().includes(query);
+                    }
                 }
 
                 // 3. Filter by Date range
@@ -826,8 +1039,26 @@
             });
         }
 
+        // Sync and update the visibility of local drafts count badge
+        function updateDraftBadge() {
+            draftCountBadge.textContent = draftProposals.length;
+            if (draftProposals.length > 0) {
+                filterTagDrafts.style.display = 'inline-flex';
+            } else {
+                filterTagDrafts.style.display = 'none';
+                if (currentFilter === 'drafts') {
+                    currentFilter = 'all';
+                    document.querySelectorAll('.filter-tag').forEach(tag => {
+                        if (tag.dataset.status === 'all') tag.classList.add('active');
+                        else tag.classList.remove('active');
+                    });
+                }
+            }
+        }
+
         // Render Sidebar proposal list cards
         function renderProposalList() {
+            updateDraftBadge();
             const items = getFilteredData();
             
             if (items.length === 0) {
@@ -842,11 +1073,16 @@
             listContainer.innerHTML = '';
             items.forEach(p => {
                 const card = document.createElement('div');
-                card.className = `proposal-card ${p.id === activeProposalId ? 'active' : ''}`;
+                const isDraft = draftProposals.some(d => d.id === p.id);
+                card.className = `proposal-card ${isDraft ? 'draft-card' : ''} ${p.id === activeProposalId ? 'active' : ''}`;
                 card.dataset.id = p.id;
                 
                 let statusClass = 'status-other';
-                if (p.status === '讨论中') statusClass = 'status-discussing';
+                let statusLabel = p.status;
+                if (isDraft) {
+                    statusClass = 'status-draft';
+                    statusLabel = '本地预览草稿';
+                } else if (p.status === '讨论中') statusClass = 'status-discussing';
                 else if (p.status === '执行中') statusClass = 'status-running';
                 else if (p.status === '公示中') statusClass = 'status-public';
                 else if (['已完成', '已结束'].includes(p.status)) statusClass = 'status-ended';
@@ -856,7 +1092,7 @@
 
                 card.innerHTML = `
                     <div class="card-header">
-                        <span class="card-status-badge ${statusClass}">${p.status}</span>
+                        <span class="card-status-badge ${statusClass}">${statusLabel}</span>
                         <span class="card-date">${p.date.split(' ')[0]}</span>
                     </div>
                     <h3 class="card-title">${escapeHTML(p.title)}</h3>
@@ -889,13 +1125,76 @@
             detailLoading.style.display = 'none';
             detailView.style.display = 'block';
 
-            const proposal = proposalsData.find(p => p.id === id);
+            // Find in drafts first, then in database
+            let proposal = draftProposals.find(p => p.id === id);
+            if (!proposal) {
+                proposal = proposalsData.find(p => p.id === id);
+            }
+            
             if (!proposal) {
                 showDetailError("提案未找到");
                 return;
             }
 
             renderProposalDetails(proposal);
+        }
+
+        // Publish a single draft to database
+        async function publishSingleDraft(pid) {
+            const draft = draftProposals.find(d => d.id === pid);
+            if (!draft) return;
+            if (!adminPasscode) {
+                alert("⚠️ 请先在常规设置中配置管理通行密钥，再发布数据至云端！");
+                return;
+            }
+            
+            try {
+                btnPublishSingleDraft.disabled = true;
+                btnPublishSingleDraft.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在发布...';
+                
+                let payload = { ...draft };
+                delete payload.isDraft;
+                delete payload.originalFilename;
+                
+                const res = await fetch(`${apiBase}/api/proposals/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`);
+                
+                // Remove from drafts list
+                draftProposals = draftProposals.filter(d => d.id !== pid);
+                localStorage.setItem('draft-proposals', JSON.stringify(draftProposals));
+                
+                alert("提案发布成功并已同步至云端！");
+                
+                await fetchProposalsData();
+                selectProposal(pid);
+            } catch (err) {
+                alert("发布失败: " + err.message);
+            } finally {
+                btnPublishSingleDraft.disabled = false;
+                btnPublishSingleDraft.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 立即发布';
+            }
+        }
+
+        // Delete a single draft
+        function deleteSingleDraft(pid) {
+            if (!confirm("确定要删除这个本地草稿吗？此操作无法撤销。")) return;
+            draftProposals = draftProposals.filter(d => d.id !== pid);
+            localStorage.setItem('draft-proposals', JSON.stringify(draftProposals));
+            alert("草稿已成功删除。");
+            
+            detailView.style.display = 'none';
+            emptyState.style.display = 'block';
+            
+            renderProposalList();
         }
 
         function showDetailError(msg) {
@@ -912,6 +1211,15 @@
 
         // Render detailed proposal viewer
         function renderProposalDetails(meta) {
+            const isDraft = draftProposals.some(d => d.id === meta.id);
+            if (isDraft) {
+                draftPreviewBanner.style.display = 'flex';
+                btnPublishSingleDraft.onclick = () => publishSingleDraft(meta.id);
+                btnDeleteSingleDraft.onclick = () => deleteSingleDraft(meta.id);
+            } else {
+                draftPreviewBanner.style.display = 'none';
+            }
+
             document.getElementById('detail-title').textContent = meta.title;
             const statusBadge = document.getElementById('detail-status');
             statusBadge.textContent = meta.status;
@@ -1122,6 +1430,11 @@
             searchInput.focus();
         });
 
+        // Search scope field selection listener
+        searchScopeSelect.addEventListener('change', () => {
+            renderProposalList();
+        });
+
         // Date Range preset selection listener
         const datePresetButtons = document.querySelectorAll('.date-preset-btn');
         const customDateDiv = document.getElementById('custom-date-inputs');
@@ -1182,10 +1495,21 @@
             
             settingsModal.style.display = 'flex';
             populateCreatorFormSelectors();
+            populateRelationSelectors();
+            
+            // Initialize searchable dropdown selectors
+            makeSelectSearchable(formEditSelect, '🔍 搜索并选择载入已有提案...');
+            makeSelectSearchable(relSourceSelect, '🔍 搜索并选择源提案 A...');
+            makeSelectSearchable(relTargetSelect, '🔍 搜索并选择目标提案 B...');
             
             formEditSelect.value = activeProposalId;
             prefillCreatorFormFields(activeProposalId);
             updateDeleteButtonVisibility();
+            
+            // Sync display text values
+            if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
+            if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
+            if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
         });
 
         // ==========================================================================
@@ -1201,6 +1525,7 @@
                 opt.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
                 formEditSelect.appendChild(opt);
             });
+            if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
         }
         
         formEditSelect.addEventListener('change', (e) => {
@@ -1211,12 +1536,14 @@
                 resetCreatorForm();
             }
             updateDeleteButtonVisibility();
+            if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
         });
         
         creatorResetBtn.addEventListener('click', () => {
             formEditSelect.value = '';
             resetCreatorForm();
             updateDeleteButtonVisibility();
+            if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
         });
         
         function resetCreatorForm() {
@@ -1347,6 +1674,9 @@ ${formContent.value.trim()}
             
             relSourceSelect.value = prevSrc;
             relTargetSelect.value = prevTgt;
+            
+            if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
+            if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
         }
 
         // Render current relationship list table
@@ -1424,6 +1754,8 @@ ${formContent.value.trim()}
             populateRelationListTable();
             relSourceSelect.value = '';
             relTargetSelect.value = '';
+            if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
+            if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
         });
 
         // EXPORT LOGIC: RELATIONS.JSON
@@ -1733,6 +2065,81 @@ ${formContent.value.trim()}
             });
         }
 
+        // Import parsed files to local drafts staging
+        btnBatchToDrafts.addEventListener('click', () => {
+            if (parsedFilesData.length === 0) {
+                alert("没有可导入的已解析文件！请先选择或拖入文件。");
+                return;
+            }
+            
+            parsedFilesData.forEach(p => {
+                if (p.isUpdateOnly) {
+                    let targetDraft = draftProposals.find(d => d.id === p.id);
+                    if (targetDraft) {
+                        if (p.type === 'result') targetDraft.result = p.content;
+                        if (p.type === 'notes') targetDraft.notes = p.content;
+                    } else {
+                        const original = proposalsData.find(d => d.id === p.id);
+                        if (original) {
+                            const copy = { ...original, isDraft: true };
+                            if (p.type === 'result') copy.result = p.content;
+                            if (p.type === 'notes') copy.notes = p.content;
+                            draftProposals = draftProposals.filter(d => d.id !== p.id);
+                            draftProposals.push(copy);
+                        } else {
+                            const copy = {
+                                id: p.id,
+                                title: `未关联更新 (${p.type === 'result' ? '结果' : '备注'})`,
+                                status: '讨论中',
+                                author: '系统导入',
+                                date: new Date().toLocaleDateString(),
+                                content: '',
+                                result: p.type === 'result' ? p.content : '',
+                                notes: p.type === 'notes' ? p.content : '',
+                                reactions: [],
+                                isDraft: true
+                            };
+                            draftProposals.push(copy);
+                        }
+                    }
+                } else {
+                    const copy = {
+                        id: p.id,
+                        title: p.title,
+                        status: p.status,
+                        author: p.author,
+                        date: p.date,
+                        content: p.content,
+                        result: p.result,
+                        notes: p.notes,
+                        reactions: p.reactions || [],
+                        isDraft: true
+                    };
+                    draftProposals = draftProposals.filter(d => d.id !== p.id);
+                    draftProposals.push(copy);
+                }
+            });
+            
+            localStorage.setItem('draft-proposals', JSON.stringify(draftProposals));
+            alert(`已成功导入 ${parsedFilesData.length} 个提案至本地草稿箱预览！`);
+            
+            // Clean visual uploader
+            parsedFilesData = [];
+            batchParsedList.innerHTML = '';
+            batchParsedListContainer.style.display = 'none';
+            batchFileInput.value = '';
+            
+            // Close settings & display drafts list
+            settingsModal.style.display = 'none';
+            currentFilter = 'drafts';
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                if (tag.dataset.status === 'drafts') tag.classList.add('active');
+                else tag.classList.remove('active');
+            });
+            
+            renderProposalList();
+        });
+
         // JS Parser for Discord txt exports & standard md files
         function parseUploadedFile(filename, text, lastModified) {
             // 1. Check if it's a separate result/notes file e.g. "1520398791772078111_result.md"
@@ -1913,6 +2320,169 @@ ${formContent.value.trim()}
             
             btnBatchUploadDb.disabled = false;
             btnBatchUploadDb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 开始批量上传至云端';
+        });
+
+        // CLOUD SNAPSHOTS / HISTORY LOGIC
+        btnRefreshHistory.addEventListener('click', loadCloudHistory);
+        tabBtnHistory.addEventListener('click', loadCloudHistory);
+
+        async function loadCloudHistory() {
+            if (!apiBase) return;
+            try {
+                cloudHistoryList.innerHTML = `
+                    <div class="loading-state" style="padding: 2rem; text-align: center; font-size: 0.75rem;">
+                        <div class="spinner" style="margin: 0 auto 0.5rem auto;"></div>
+                        <p>正在拉取云端快照历史...</p>
+                    </div>
+                `;
+                
+                const res = await fetch(`${apiBase}/api/admin/backups`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminPasscode}`
+                    }
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                const historyData = await res.json();
+                historyCountSpan.textContent = historyData.length;
+                
+                if (historyData.length === 0) {
+                    cloudHistoryList.innerHTML = `
+                        <div style="padding: 2rem; text-align: center; font-size: 0.75rem; color: var(--text-secondary);">
+                            暂无云端历史备份记录
+                        </div>
+                    `;
+                    return;
+                }
+                
+                cloudHistoryList.innerHTML = '';
+                historyData.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'history-item';
+                    
+                    const timeStr = new Date(item.backup_time).toLocaleString();
+                    
+                    el.innerHTML = `
+                        <div class="history-info">
+                            <span class="history-title" title="${escapeHTML(item.title)}">${escapeHTML(item.title)}</span>
+                            <span class="history-meta">提案ID: #${item.proposal_id.slice(-6)} | 备份时间: ${timeStr} | 状态: ${item.status}</span>
+                        </div>
+                        <button type="button" class="btn-primary btn-sm btn-rollback" data-id="${item.id}" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> 恢复此版本
+                        </button>
+                    `;
+                    
+                    el.querySelector('.btn-rollback').addEventListener('click', () => rollbackHistoryVersion(item.id, item.title));
+                    cloudHistoryList.appendChild(el);
+                });
+            } catch (err) {
+                cloudHistoryList.innerHTML = `
+                    <div class="error-state" style="padding: 1.5rem; font-size: 0.75rem;">
+                        <p>拉取失败: ${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function rollbackHistoryVersion(historyId, title) {
+            if (!confirm(`⚠️ 您确定要将提案《${title}》回滚恢复至该备份版本吗？这会覆盖云端的当前版本！`)) return;
+            
+            try {
+                const res = await fetch(`${apiBase}/api/admin/backups/restore`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminPasscode}`
+                    },
+                    body: JSON.stringify({ history_id: historyId })
+                });
+                
+                const resData = await res.json();
+                if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`);
+                
+                alert("回滚恢复成功！");
+                
+                // Close settings modal & Refresh data
+                settingsModal.style.display = 'none';
+                await fetchProposalsData();
+            } catch (err) {
+                alert("回滚失败: " + err.message);
+            }
+        }
+
+        // ONE-CLICK EXPORT ARCHIVE: JSON Backup
+        btnDbExportArchiveJson.addEventListener('click', () => {
+            if (proposalsData.length === 0) {
+                alert("当前无可用数据进行导出！");
+                return;
+            }
+            const archive = {
+                proposals: proposalsData,
+                relations: relationsData,
+                exportTime: new Date().toISOString()
+            };
+            downloadFile('odyssey_database_backup.json', JSON.stringify(archive, null, 2));
+        });
+
+        // ONE-CLICK EXPORT ARCHIVE: ZIP Package (Discord native file structure format)
+        btnDbExportArchiveZip.addEventListener('click', async () => {
+            if (proposalsData.length === 0) {
+                alert("当前无可用数据进行打包导出！");
+                return;
+            }
+            
+            try {
+                btnDbExportArchiveZip.disabled = true;
+                btnDbExportArchiveZip.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在打包压缩中...';
+                
+                const zip = new JSZip();
+                const proposalsFolder = zip.folder("proposals");
+                
+                proposalsData.forEach(p => {
+                    let fileContent = `==============================================================
+Guild: 类脑ΟΔΥΣΣΕΙΑ
+Channel: 社区运营区 / 🧾︱提案讨论区 / [${p.status}] ${p.title}
+==============================================================
+
+[${p.date}] StellariaPact#3495
+***提案人: @${p.author}***
+
+${(p.content || '').trim()}
+`;
+
+                    if (p.result && p.result.trim()) {
+                        fileContent += `\n\n> ## 提案结果\n${p.result.trim()}`;
+                    }
+
+                    if (p.notes && p.notes.trim()) {
+                        fileContent += `\n\n> ## 备注\n${p.notes.trim()}`;
+                    }
+                    
+                    fileContent += `\n\n*讨论帖创建时间: ${p.date}*`;
+                    
+                    const filename = `类脑ΟΔΥΣΣΕΙΑ - 🧾︱提案讨论区 - [${p.status}] ${p.title} [${p.id}].txt`;
+                    proposalsFolder.file(filename, fileContent);
+                });
+                
+                zip.file("list.json", JSON.stringify(proposalsData, null, 2));
+                zip.file("relations.json", JSON.stringify(relationsData, null, 2));
+                
+                const content = await zip.generateAsync({ type: "blob" });
+                
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(content);
+                link.download = "odyssey_proposals_archive.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert("一键本地归档打包成功！");
+            } catch (err) {
+                alert("打包导出失败: " + err.message);
+            } finally {
+                btnDbExportArchiveZip.disabled = false;
+                btnDbExportArchiveZip.innerHTML = '<i class="fa-solid fa-file-zipper"></i> 一键打包导出提案 (ZIP 压缩包)';
+            }
         });
 
         // Start Fetching Data

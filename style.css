@@ -1949,3 +1949,161 @@ select.form-control-input {
     background-color: var(--sidebar-bg);
 }
 
+/* Custom Searchable Select Dropdown CSS */
+.searchable-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.search-select-input {
+    width: 100%;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 1rem !important;
+    padding-right: 2.25rem !important;
+}
+
+.search-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-top: 4px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    animation: fadeIn 0.15s ease;
+}
+
+.search-select-option {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-select-option:hover {
+    background-color: var(--badge-bg);
+    color: var(--text-primary);
+}
+
+.search-select-option.selected {
+    background-color: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+/* Search Scope Box Styling in Sidebar */
+.search-scope-section {
+    padding: 0.4rem 1rem 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.search-scope-select {
+    height: 28px !important;
+    padding: 0.1rem 1.8rem 0.1rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--input-bg) !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    width: auto !important;
+    max-width: 140px !important;
+}
+
+/* Draft Preview Banner in detailed view */
+.draft-preview-banner {
+    background-color: rgba(235, 203, 139, 0.08);
+    border: 1px solid rgba(235, 203, 139, 0.2);
+    border-radius: 8px;
+    padding: 0.65rem 0.95rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-left: 4px solid #ebcb8b;
+}
+
+.draft-preview-banner span {
+    font-size: 0.75rem;
+    color: #ebcb8b;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.draft-banner-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+/* Cloud History Tab & Table styling */
+.history-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--input-bg);
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-width: 75%;
+}
+
+.history-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-meta {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.status-draft {
+    background-color: rgba(235, 203, 139, 0.12) !important;
+    color: #ebcb8b !important;
+    border: 1px solid rgba(235, 203, 139, 0.25) !important;
+}
+
+.proposal-card.draft-card {
+    border-left: 4px solid #ebcb8b !important;
+}
+
+
