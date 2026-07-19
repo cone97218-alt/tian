@@ -559,6 +559,18 @@
         const parsedCountSpan = document.getElementById('parsed-count');
         const btnBatchUploadDb = document.getElementById('btn-batch-upload-db');
         
+        // Proposal Creator DOM elements cached globally
+        const formEditSelect = document.getElementById('form-edit-select');
+        const formId = document.getElementById('form-id');
+        const formTitle = document.getElementById('form-title');
+        const formAuthor = document.getElementById('form-author');
+        const formDate = document.getElementById('form-date');
+        const formStatus = document.getElementById('form-status');
+        const formContent = document.getElementById('form-content');
+        const formResult = document.getElementById('form-result');
+        const formNotes = document.getElementById('form-notes');
+        const creatorResetBtn = document.getElementById('creator-reset-btn');
+        
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -1164,7 +1176,6 @@
             settingsModal.style.display = 'flex';
             populateCreatorFormSelectors();
             
-            const formEditSelect = document.getElementById('form-edit-select');
             formEditSelect.value = activeProposalId;
             prefillCreatorFormFields(activeProposalId);
             updateDeleteButtonVisibility();
@@ -1173,17 +1184,6 @@
         // ==========================================================================
         // SETTINGS & CREATOR LOGIC
         // ==========================================================================
-
-        const formEditSelect = document.getElementById('form-edit-select');
-        const formId = document.getElementById('form-id');
-        const formTitle = document.getElementById('form-title');
-        const formAuthor = document.getElementById('form-author');
-        const formDate = document.getElementById('form-date');
-        const formStatus = document.getElementById('form-status');
-        const formContent = document.getElementById('form-content');
-        const formResult = document.getElementById('form-result');
-        const formNotes = document.getElementById('form-notes');
-        const creatorResetBtn = document.getElementById('creator-reset-btn');
         
         // Populate proposal selection inside creator tab
         function populateCreatorFormSelectors() {
