@@ -2070,6 +2070,43 @@ select.form-control-input {
     box-shadow: 0 2px 8px rgba(136, 192, 208, 0.35);
 }
 
+/* Private Notes Styling */
+.proposal-notes-section.private-notes-card {
+    border-left: 4px solid #ebcb8b !important;
+    background-color: rgba(235, 203, 139, 0.05) !important;
+    border: 1px solid rgba(235, 203, 139, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.badge-admin-tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background-color: rgba(235, 203, 139, 0.15);
+    color: #ebcb8b;
+    border: 1px solid rgba(235, 203, 139, 0.3);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.private-notes-locked-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    background-color: rgba(235, 203, 139, 0.08);
+    border: 1px dashed rgba(235, 203, 139, 0.3);
+    border-radius: 6px;
+    color: #ebcb8b;
+    font-size: 0.78rem;
+}
+
+.private-notes-locked-notice i {
+    font-size: 1rem;
+}
+
 /* Search Scope Box Styling in Sidebar */
 .search-scope-section {
     padding: 0.4rem 1rem 0.5rem 1rem;

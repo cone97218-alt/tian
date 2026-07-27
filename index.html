@@ -256,11 +256,19 @@
                         </div>
                     </div>
                     
-                    <!-- Notes / Comments Section -->
+                    <!-- Public Notes Section (Visible to all) -->
                     <div class="proposal-notes-section" id="proposal-notes-section" style="display: none;">
-                        <h3><i class="fa-solid fa-note-sticky"></i> 提案备注/注释</h3>
+                        <h3><i class="fa-solid fa-earth-americas"></i> 📢 公开备注 / 注释</h3>
                         <div class="notes-box markdown-body" id="detail-notes">
                             <!-- Notes text -->
+                        </div>
+                    </div>
+                    
+                    <!-- Private Notes Section (Admin Passcode required) -->
+                    <div class="proposal-notes-section private-notes-card" id="proposal-private-notes-section" style="display: none;">
+                        <h3><i class="fa-solid fa-user-lock"></i> 🔒 私密备注 / 内部注释 <span class="badge-admin-tag">仅管理员可见</span></h3>
+                        <div class="notes-box markdown-body private-notes-box" id="detail-private-notes">
+                            <!-- Private Notes text -->
                         </div>
                     </div>
                     
@@ -473,10 +481,14 @@
                                     </div>
                                 </div>
                                 
-                                <div class="form-row-1">
+                                <div class="form-row-2">
                                     <div class="form-group-item">
-                                        <label for="form-notes">备注/注释 (可选，支持 Markdown)：</label>
-                                        <textarea id="form-notes" class="form-control-input textarea-small" placeholder="此处可以添加其他附加说明、备注或修订历史..."></textarea>
+                                        <label for="form-notes"><i class="fa-solid fa-earth-americas"></i> 📢 公开备注 / 注释 (所有人可见)：</label>
+                                        <textarea id="form-notes" class="form-control-input textarea-small" placeholder="添加所有人可见的附加说明、补充描述或公开修订记录..."></textarea>
+                                    </div>
+                                    <div class="form-group-item">
+                                        <label for="form-private-notes"><i class="fa-solid fa-user-lock"></i> 🔒 私密备注 / 内部注释 (仅管理员可见)：</label>
+                                        <textarea id="form-private-notes" class="form-control-input textarea-small" placeholder="填写仅管理员在解锁管理密码后可见的内部操作记录、反查信息或敏感说明..."></textarea>
                                     </div>
                                 </div>
                                 
@@ -500,11 +512,16 @@
                                             <i class="fa-solid fa-file-arrow-down"></i> 导出备份 (.txt)
                                         </button>
                                         <button type="button" class="btn-secondary" id="btn-export-result">
-                                            <i class="fa-solid fa-square-check"></i> 导出结果文件 (.md)
+                                            <i class="fa-solid fa-file-lines"></i> 导出独立结果 (.md)
                                         </button>
                                         <button type="button" class="btn-secondary" id="btn-export-notes">
-                                            <i class="fa-solid fa-note-sticky"></i> 导出备注文件 (.md)
+                                            <i class="fa-solid fa-file-lines"></i> 导出公开备注 (.md)
                                         </button>
+                                        <button type="button" class="btn-secondary" id="btn-export-private-notes">
+                                            <i class="fa-solid fa-file-shield"></i> 导出私密备注 (.md)
+                                        </button>
+                                    </div>
+                                </div>
                                     </div>
                                 </div>
                             </form>
@@ -673,6 +690,7 @@
         const formContent = document.getElementById('form-content');
         const formResult = document.getElementById('form-result');
         const formNotes = document.getElementById('form-notes');
+        const formPrivateNotes = document.getElementById('form-private-notes');
         const formUrl = document.getElementById('form-url');
         const formRelationsMulti = document.getElementById('form-relations-multi');
         const creatorResetBtn = document.getElementById('creator-reset-btn');
@@ -1059,7 +1077,12 @@
                     relationsUrl = `${apiBase}/api/relations`;
                 }
                 
-                const response = await fetch(proposalsUrl);
+                const fetchHeaders = {};
+                if (adminPasscode) {
+                    fetchHeaders['Authorization'] = `Bearer ${adminPasscode}`;
+                }
+
+                const response = await fetch(proposalsUrl, { headers: fetchHeaders });
                 if (!response.ok) {
                     throw new Error(`无法读取数据索引 (HTTP ${response.status})`);
                 }
@@ -1461,7 +1484,7 @@
                 resultSection.style.display = 'none';
             }
             
-            // Render optional notes section
+            // Render optional public notes section
             const notesSection = document.getElementById('proposal-notes-section');
             const notesBox = document.getElementById('detail-notes');
             if (meta.notes && meta.notes.trim()) {
@@ -1470,6 +1493,31 @@
                 notesSection.style.display = 'block';
             } else {
                 notesSection.style.display = 'none';
+            }
+
+            // Render optional private notes section (Admin Passcode required)
+            const privNotesSection = document.getElementById('proposal-private-notes-section');
+            const privNotesBox = document.getElementById('detail-private-notes');
+            const privNotes = meta.private_notes || meta.privateNotes || '';
+            const hasPrivNotes = Boolean(meta.has_private_notes || (privNotes && privNotes.trim() !== ''));
+
+            if (privNotesSection && privNotesBox) {
+                if (hasPrivNotes) {
+                    privNotesSection.style.display = 'block';
+                    if (privNotes && privNotes !== '[PROTECTED_PRIVATE_NOTES]') {
+                        const privHtml = marked.parse(privNotes);
+                        privNotesBox.innerHTML = DOMPurify.sanitize(privHtml);
+                    } else {
+                        privNotesBox.innerHTML = `
+                            <div class="private-notes-locked-notice">
+                                <i class="fa-solid fa-user-lock"></i>
+                                <span>本提案包含内部私密备注（请在右上角 <b>⚙️ [常规设置]</b> 中填写管理员密码后解密查看）</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    privNotesSection.style.display = 'none';
+                }
             }
 
             // Render linkages relationships
@@ -1784,6 +1832,7 @@
             formContent.value = '';
             formResult.value = '';
             formNotes.value = '';
+            if (formPrivateNotes) formPrivateNotes.value = '';
             if (formUrl) formUrl.value = '';
             if (formRelationsMulti) {
                 Array.from(formRelationsMulti.options).forEach(opt => opt.selected = false);
@@ -1803,6 +1852,10 @@
             formContent.value = p.content || '';
             formResult.value = p.result || '';
             formNotes.value = p.notes || '';
+            if (formPrivateNotes) {
+                const privVal = p.private_notes || p.privateNotes || '';
+                formPrivateNotes.value = (privVal === '[PROTECTED_PRIVATE_NOTES]') ? '' : privVal;
+            }
             if (formUrl) formUrl.value = p.url || '';
             
             if (formRelationsMulti) {
@@ -1837,7 +1890,11 @@ ${formContent.value.trim()}
             }
 
             if (formNotes.value.trim()) {
-                fileContent += `\n\n> ## 备注\n${formNotes.value.trim()}`;
+                fileContent += `\n\n> ## 📢 公开备注\n${formNotes.value.trim()}`;
+            }
+
+            if (formPrivateNotes && formPrivateNotes.value.trim()) {
+                fileContent += `\n\n> ## 🔒 私密备注\n${formPrivateNotes.value.trim()}`;
             }
 
             if (formUrl && formUrl.value.trim()) {
@@ -1860,14 +1917,24 @@ ${formContent.value.trim()}
             downloadFile(filename, formResult.value.trim());
         });
 
-        // EXPORT LOGIC: INDEPENDENT NOTES MD
+        // EXPORT LOGIC: INDEPENDENT PUBLIC NOTES MD
         document.getElementById('btn-export-notes').addEventListener('click', () => {
             if (!formNotes.value.trim()) {
-                alert("请在“备注/注释”输入框中填写附加备注后，再导出独立备注文件！");
+                alert("请在“公开备注”输入框中填写附加备注后，再导出独立备注文件！");
                 return;
             }
             const filename = `${formId.value}_notes.md`;
             downloadFile(filename, formNotes.value.trim());
+        });
+
+        // EXPORT LOGIC: INDEPENDENT PRIVATE NOTES MD
+        document.getElementById('btn-export-private-notes').addEventListener('click', () => {
+            if (!formPrivateNotes || !formPrivateNotes.value.trim()) {
+                alert("请在“私密备注”输入框中填写内容后，再导出私密备注文件！");
+                return;
+            }
+            const filename = `${formId.value}_private_notes.md`;
+            downloadFile(filename, formPrivateNotes.value.trim());
         });
 
         // Toggle advanced export options panel collapse
@@ -2029,6 +2096,7 @@ ${formContent.value.trim()}
                 content: formContent.value.trim(),
                 result: formResult.value.trim(),
                 notes: formNotes.value.trim(),
+                private_notes: formPrivateNotes ? formPrivateNotes.value.trim() : '',
                 url: formUrl ? formUrl.value.trim() : '',
                 reactions: []
             };
@@ -2505,12 +2573,23 @@ ${formContent.value.trim()}
             content = content.replace(/\*讨论帖创建时间:.*(?:\r?\n)*$/, '').trim();
             content = content.replace(/\*原帖链接:.*(?:\r?\n)*$/, '').trim();
 
-            // 6. Split embedded Result & Notes from main content body dynamically
+            // 6. Split embedded Result, Public Notes & Private Notes from main content body dynamically
             let result = "";
             let notes = "";
+            let privateNotes = "";
+
+            const privNotesRegex = />?\s*##?\s*(?:提案)?(?:私密|内部|隐藏)备注/i;
+            const privMatch = content.match(privNotesRegex);
+            const privIdx = privMatch ? content.indexOf(privMatch[0]) : -1;
+            const privLen = privMatch ? privMatch[0].length : 0;
+
+            if (privIdx !== -1) {
+                privateNotes = content.substring(privIdx + privLen).trim();
+                content = content.substring(0, privIdx).trim();
+            }
 
             const resRegex = />?\s*##?\s*(?:提案)?结果/i;
-            const notesRegex = />?\s*##?\s*(?:提案)?(?:备注|注释)/i;
+            const notesRegex = />?\s*##?\s*(?:提案)?(?:公开)?(?:备注|注释)/i;
 
             const resMatch = content.match(resRegex);
             const notesMatch = content.match(notesRegex);
@@ -2541,7 +2620,8 @@ ${formContent.value.trim()}
 
             // Strip residual header tags if present
             result = result.replace(/^>?\s*#*\s*(?:提案)?结果\s*/i, '').trim();
-            notes = notes.replace(/^>?\s*#*\s*(?:提案)?(?:备注|注释)\s*/i, '').trim();
+            notes = notes.replace(/^>?\s*#*\s*(?:提案)?(?:公开)?(?:备注|注释)\s*/i, '').trim();
+            privateNotes = privateNotes.replace(/^>?\s*#*\s*(?:提案)?(?:私密|内部|隐藏)备注\s*/i, '').trim();
 
             return {
                 isUpdateOnly: false,
@@ -2553,6 +2633,7 @@ ${formContent.value.trim()}
                 content,
                 result,
                 notes,
+                private_notes: privateNotes,
                 url
             };
         }
