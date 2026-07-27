@@ -223,6 +223,13 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Original Post Link Container -->
+                        <div id="detail-url-container" style="display: none; margin-top: 0.75rem;">
+                            <a id="detail-url-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-url-link" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; background: rgba(136, 192, 208, 0.15); border: 1px solid rgba(136, 192, 208, 0.3); border-radius: 6px; color: var(--accent-color); font-size: 0.85rem; font-weight: 500; text-decoration: none; transition: all 0.2s;">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> 打开 Discord 原帖链接
+                            </a>
+                        </div>
                     </div>
                     
                     <!-- Proposal Main Markdown Body -->
@@ -436,6 +443,19 @@
                                     </div>
                                 </div>
                                 
+                                <div class="form-row-2">
+                                    <div class="form-group-item">
+                                        <label for="form-url"><i class="fa-solid fa-link"></i> 原帖 / 讨论区链接 (URL 选填)：</label>
+                                        <input type="url" id="form-url" class="form-control-input" placeholder="例如: https://discord.com/channels/123456/789012">
+                                    </div>
+                                    <div class="form-group-item">
+                                        <label for="form-relations-multi"><i class="fa-solid fa-diagram-project"></i> 关联提案 (多选)：</label>
+                                        <select id="form-relations-multi" class="form-control-input select-styled" multiple style="height: 38px;">
+                                            <!-- Dynamically filled with proposal options -->
+                                        </select>
+                                    </div>
+                                </div>
+                                
                                 <div class="form-row-1">
                                     <div class="form-group-item">
                                         <label for="form-content">提案原因与动议正文 (支持 Markdown)：</label>
@@ -508,8 +528,8 @@
                                         <option value="obsoleted_by">被废弃 / 被取代 (A 被 B 取代失效)</option>
                                     </select>
                                     
-                                    <select id="relation-target" class="form-control-input select-relation">
-                                        <option value="">-- 选择目标提案 B --</option>
+                                    <select id="relation-target" class="form-control-input select-relation" multiple style="min-height: 38px; height: auto;">
+                                        <option value="">-- 选择目标提案 B (可多选) --</option>
                                     </select>
                                     
                                     <button type="button" class="btn-primary" id="btn-add-relation">
@@ -650,6 +670,8 @@
         const formContent = document.getElementById('form-content');
         const formResult = document.getElementById('form-result');
         const formNotes = document.getElementById('form-notes');
+        const formUrl = document.getElementById('form-url');
+        const formRelationsMulti = document.getElementById('form-relations-multi');
         const creatorResetBtn = document.getElementById('creator-reset-btn');
         
         // New features DOM selectors (Search scope, Drafts, History)
@@ -967,12 +989,34 @@
             return isNaN(d.getTime()) ? null : d;
         }
 
+        // Fuzzy / Flexible search match helper (space-separated AND search & char sequence matching)
+        function fuzzyMatch(targetText, queryStr) {
+            if (!queryStr || !queryStr.trim()) return true;
+            if (!targetText) return false;
+            
+            const text = String(targetText).toLowerCase();
+            const keywords = queryStr.trim().toLowerCase().split(/\s+/);
+            
+            return keywords.every(kw => {
+                if (!kw) return true;
+                if (text.includes(kw)) return true;
+                
+                let textIdx = 0;
+                for (let i = 0; i < kw.length; i++) {
+                    textIdx = text.indexOf(kw[i], textIdx);
+                    if (textIdx === -1) return false;
+                    textIdx++;
+                }
+                return true;
+            });
+        }
+
         // Combined Filter and Search matching
         function getFilteredData() {
             const now = new Date();
             const dataSource = (currentFilter === 'drafts') ? draftProposals : proposalsData;
             
-            return dataSource.filter(proposal => {
+            const filtered = dataSource.filter(proposal => {
                 // 1. Filter by Status
                 let matchesStatus = true;
                 if (currentFilter !== 'all' && currentFilter !== 'drafts') {
@@ -980,30 +1024,28 @@
                     matchesStatus = statuses.includes(proposal.status);
                 }
 
-                // 2. Filter by Search keyword
+                // 2. Filter by Search keyword (Fuzzy Search)
                 let matchesSearch = true;
                 if (currentSearch) {
-                    const query = currentSearch.toLowerCase();
                     const scope = searchScopeSelect.value;
-                    
                     if (scope === 'all') {
                         matchesSearch = 
-                            proposal.title.toLowerCase().includes(query) || 
-                            proposal.author.toLowerCase().includes(query) || 
-                            proposal.id.includes(query) ||
-                            (proposal.content && proposal.content.toLowerCase().includes(query)) ||
-                            (proposal.result && proposal.result.toLowerCase().includes(query)) ||
-                            (proposal.notes && proposal.notes.toLowerCase().includes(query));
+                            fuzzyMatch(proposal.title, currentSearch) || 
+                            fuzzyMatch(proposal.author, currentSearch) || 
+                            fuzzyMatch(proposal.id, currentSearch) ||
+                            fuzzyMatch(proposal.content, currentSearch) ||
+                            fuzzyMatch(proposal.result, currentSearch) ||
+                            fuzzyMatch(proposal.notes, currentSearch);
                     } else if (scope === 'title') {
-                        matchesSearch = proposal.title.toLowerCase().includes(query);
+                        matchesSearch = fuzzyMatch(proposal.title, currentSearch);
                     } else if (scope === 'content') {
-                        matchesSearch = proposal.content && proposal.content.toLowerCase().includes(query);
+                        matchesSearch = fuzzyMatch(proposal.content, currentSearch);
                     } else if (scope === 'result') {
-                        matchesSearch = proposal.result && proposal.result.toLowerCase().includes(query);
+                        matchesSearch = fuzzyMatch(proposal.result, currentSearch);
                     } else if (scope === 'notes') {
-                        matchesSearch = proposal.notes && proposal.notes.toLowerCase().includes(query);
+                        matchesSearch = fuzzyMatch(proposal.notes, currentSearch);
                     } else if (scope === 'author') {
-                        matchesSearch = proposal.author.toLowerCase().includes(query);
+                        matchesSearch = fuzzyMatch(proposal.author, currentSearch);
                     }
                 }
 
@@ -1037,6 +1079,20 @@
 
                 return matchesStatus && matchesSearch && matchesDate;
             });
+
+            // 4. Sort by Date Descending (Newest proposals at top)
+            filtered.sort((a, b) => {
+                const dateA = parseProposalDate(a.date);
+                const dateB = parseProposalDate(b.date);
+                if (dateA && dateB) {
+                    return dateB.getTime() - dateA.getTime();
+                }
+                if (dateA) return -1;
+                if (dateB) return 1;
+                return (b.id || '').localeCompare(a.id || '', undefined, { numeric: true });
+            });
+
+            return filtered;
         }
 
         // Sync and update the visibility of local drafts count badge
@@ -1241,6 +1297,22 @@
             
             document.getElementById('detail-date').textContent = meta.date;
             document.getElementById('detail-id').textContent = meta.id;
+
+            // Render original post URL link
+            const urlContainer = document.getElementById('detail-url-container');
+            const urlLink = document.getElementById('detail-url-link');
+            if (urlContainer && urlLink) {
+                if (meta.url && meta.url.trim()) {
+                    let formattedUrl = meta.url.trim();
+                    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://') && !formattedUrl.startsWith('discord://')) {
+                        formattedUrl = 'https://' + formattedUrl;
+                    }
+                    urlLink.href = formattedUrl;
+                    urlContainer.style.display = 'block';
+                } else {
+                    urlContainer.style.display = 'none';
+                }
+            }
 
             // Render main text body via Marked
             const contentArea = document.getElementById('proposal-body');
@@ -1519,11 +1591,20 @@
         // Populate proposal selection inside creator tab
         function populateCreatorFormSelectors() {
             formEditSelect.innerHTML = '<option value="">-- 新建提案 --</option>';
+            if (formRelationsMulti) formRelationsMulti.innerHTML = '';
+            
             proposalsData.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
                 opt.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
                 formEditSelect.appendChild(opt);
+
+                if (formRelationsMulti) {
+                    const optM = document.createElement('option');
+                    optM.value = p.id;
+                    optM.textContent = `[${p.status}] ${p.title} (#${p.id.slice(-6)})`;
+                    formRelationsMulti.appendChild(optM);
+                }
             });
             if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
         }
@@ -1557,6 +1638,10 @@
             formContent.value = '';
             formResult.value = '';
             formNotes.value = '';
+            if (formUrl) formUrl.value = '';
+            if (formRelationsMulti) {
+                Array.from(formRelationsMulti.options).forEach(opt => opt.selected = false);
+            }
             updateDeleteButtonVisibility();
         }
         
@@ -1572,6 +1657,14 @@
             formContent.value = p.content || '';
             formResult.value = p.result || '';
             formNotes.value = p.notes || '';
+            if (formUrl) formUrl.value = p.url || '';
+            
+            if (formRelationsMulti) {
+                const linkedTargetIds = relationsData.filter(r => r.source === pid).map(r => r.target);
+                Array.from(formRelationsMulti.options).forEach(opt => {
+                    opt.selected = linkedTargetIds.includes(opt.value);
+                });
+            }
             updateDeleteButtonVisibility();
         }
 
@@ -1599,6 +1692,10 @@ ${formContent.value.trim()}
 
             if (formNotes.value.trim()) {
                 fileContent += `\n\n> ## 备注\n${formNotes.value.trim()}`;
+            }
+
+            if (formUrl && formUrl.value.trim()) {
+                fileContent += `\n\n*原帖链接: ${formUrl.value.trim()}*`;
             }
             
             fileContent += `\n\n*讨论帖创建时间: ${formDate.value}*`;
@@ -1723,37 +1820,39 @@ ${formContent.value.trim()}
             });
         }
 
-        // Add relationship
+        // Add relationship (supports multi-target many-to-many additions)
         document.getElementById('btn-add-relation').addEventListener('click', () => {
             const src = relSourceSelect.value;
-            const target = relTargetSelect.value;
             const type = relTypeSelect.value;
+            const selectedTargets = Array.from(relTargetSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
             
-            if (!src || !target) {
-                alert("请选择源提案 A 和目标提案 B！");
+            if (!src || selectedTargets.length === 0) {
+                alert("请选择源提案 A 和至少一个目标提案 B！");
                 return;
             }
             
-            if (src === target) {
-                alert("源提案与目标提案不能是同个文件！");
-                return;
-            }
-            
-            const duplicate = relationsData.some(r => r.source === src && r.target === target && r.type === type);
-            if (duplicate) {
-                alert("该联动关系已存在！");
-                return;
-            }
-            
-            relationsData.push({
-                source: src,
-                type: type,
-                target: target
+            let addedCount = 0;
+            selectedTargets.forEach(target => {
+                if (src === target) return;
+                const duplicate = relationsData.some(r => r.source === src && r.target === target && r.type === type);
+                if (!duplicate) {
+                    relationsData.push({
+                        source: src,
+                        type: type,
+                        target: target
+                    });
+                    addedCount++;
+                }
             });
+            
+            if (addedCount === 0) {
+                alert("所选关系均已存在，无新增关联！");
+                return;
+            }
             
             populateRelationListTable();
             relSourceSelect.value = '';
-            relTargetSelect.value = '';
+            Array.from(relTargetSelect.options).forEach(opt => opt.selected = false);
             if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
             if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
         });
@@ -1784,6 +1883,7 @@ ${formContent.value.trim()}
                 content: formContent.value.trim(),
                 result: formResult.value.trim(),
                 notes: formNotes.value.trim(),
+                url: formUrl ? formUrl.value.trim() : '',
                 reactions: []
             };
             
@@ -1809,6 +1909,32 @@ ${formContent.value.trim()}
                 const resData = await res.json();
                 if (!res.ok) {
                     throw new Error(resData.error || `HTTP ${res.status}`);
+                }
+
+                // Sync multi-relations if selected in formRelationsMulti
+                if (formRelationsMulti) {
+                    const pid = payload.id;
+                    const selectedTargets = Array.from(formRelationsMulti.selectedOptions).map(opt => opt.value).filter(Boolean);
+                    relationsData = relationsData.filter(r => r.source !== pid);
+                    selectedTargets.forEach(tgt => {
+                        if (tgt !== pid) {
+                            relationsData.push({ source: pid, type: 'related_to', target: tgt });
+                        }
+                    });
+                    if (apiBase) {
+                        try {
+                            await fetch(`${apiBase}/api/relations/update`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${adminPasscode}`
+                                },
+                                body: JSON.stringify(relationsData)
+                            });
+                        } catch(e) {
+                            console.error("Failed to sync relations to cloud:", e);
+                        }
+                    }
                 }
                 
                 alert("提案发布保存成功！");
@@ -2216,6 +2342,10 @@ ${formContent.value.trim()}
                 date = "未知时间";
             }
 
+            // Extract Original Post URL if present
+            const urlMatch = text.match(/(?:\*|\*\*|)?原帖(?:[\/／]讨论区)?链接:\s*\*?\s*(https?:\/\/\S+|discord:\/\/\S+)/i) || text.match(/(https?:\/\/discord\.com\/channels\/\S+)/i);
+            const url = urlMatch ? urlMatch[1].replace(/\*+$/, '').trim() : "";
+
             // 5. Extract Content (Strip Discord header dividers if present)
             let content = text.trim();
             const dividers = [...text.matchAll(/={30,}/g)];
@@ -2227,31 +2357,45 @@ ${formContent.value.trim()}
             // Strip trailing metadata lines from Discord export template
             content = content.replace(/\*讨论帖创建时间:.*$/, '').trim();
             content = content.replace(/\*讨论帖创建时间:.*(?:\r?\n)*$/, '').trim();
+            content = content.replace(/\*原帖链接:.*(?:\r?\n)*$/, '').trim();
 
-            // 6. Split embedded Result & Notes from main content body
+            // 6. Split embedded Result & Notes from main content body dynamically
             let result = "";
             let notes = "";
 
-            const resultIndex = content.indexOf("> ## 提案结果");
-            const notesIndex = content.indexOf("> ## 备注");
+            const resRegex = />?\s*##?\s*(?:提案)?结果/i;
+            const notesRegex = />?\s*##?\s*(?:提案)?(?:备注|注释)/i;
 
-            if (resultIndex !== -1 && notesIndex !== -1) {
-                if (resultIndex < notesIndex) {
-                    result = content.substring(resultIndex + 8, notesIndex).trim();
-                    notes = content.substring(notesIndex + 6).trim();
-                    content = content.substring(0, resultIndex).trim();
+            const resMatch = content.match(resRegex);
+            const notesMatch = content.match(notesRegex);
+
+            const resIdx = resMatch ? content.indexOf(resMatch[0]) : -1;
+            const resLen = resMatch ? resMatch[0].length : 0;
+
+            const noteIdx = notesMatch ? content.indexOf(notesMatch[0]) : -1;
+            const noteLen = notesMatch ? notesMatch[0].length : 0;
+
+            if (resIdx !== -1 && noteIdx !== -1) {
+                if (resIdx < noteIdx) {
+                    result = content.substring(resIdx + resLen, noteIdx).trim();
+                    notes = content.substring(noteIdx + noteLen).trim();
+                    content = content.substring(0, resIdx).trim();
                 } else {
-                    notes = content.substring(notesIndex + 6, resultIndex).trim();
-                    result = content.substring(resultIndex + 8).trim();
-                    content = content.substring(0, notesIndex).trim();
+                    notes = content.substring(noteIdx + noteLen, resIdx).trim();
+                    result = content.substring(resIdx + resLen).trim();
+                    content = content.substring(0, noteIdx).trim();
                 }
-            } else if (resultIndex !== -1) {
-                result = content.substring(resultIndex + 8).trim();
-                content = content.substring(0, resultIndex).trim();
-            } else if (notesIndex !== -1) {
-                notes = content.substring(notesIndex + 6).trim();
-                content = content.substring(0, notesIndex).trim();
+            } else if (resIdx !== -1) {
+                result = content.substring(resIdx + resLen).trim();
+                content = content.substring(0, resIdx).trim();
+            } else if (noteIdx !== -1) {
+                notes = content.substring(noteIdx + noteLen).trim();
+                content = content.substring(0, noteIdx).trim();
             }
+
+            // Strip residual header tags if present
+            result = result.replace(/^>?\s*#*\s*(?:提案)?结果\s*/i, '').trim();
+            notes = notes.replace(/^>?\s*#*\s*(?:提案)?(?:备注|注释)\s*/i, '').trim();
 
             return {
                 isUpdateOnly: false,
@@ -2262,7 +2406,8 @@ ${formContent.value.trim()}
                 date,
                 content,
                 result,
-                notes
+                notes,
+                url
             };
         }
 
