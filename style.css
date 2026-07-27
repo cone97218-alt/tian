@@ -2055,6 +2055,14 @@ select.form-control-input {
     accent-color: var(--accent-color);
 }
 
+.card-status-badge.status-linked-badge {
+    background-color: rgba(136, 192, 208, 0.12) !important;
+    color: var(--accent-color) !important;
+    border: 1px solid rgba(136, 192, 208, 0.3) !important;
+    font-size: 0.65rem !important;
+    padding: 0.15rem 0.45rem !important;
+}
+
 /* Search Scope Box Styling in Sidebar */
 .search-scope-section {
     padding: 0.4rem 1rem 0.5rem 1rem;

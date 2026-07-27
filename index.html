@@ -125,6 +125,9 @@
                         <button class="filter-tag" data-status="已否决">已否决</button>
                         <button class="filter-tag" data-status="已废弃,已关闭">已废弃/关闭</button>
                         <button class="filter-tag" data-status="异议">异议</button>
+                        <button class="filter-tag status-linked-tag" data-status="linked" style="background-color: rgba(136, 192, 208, 0.1); border-color: rgba(136, 192, 208, 0.25); color: var(--accent-color);">
+                            <i class="fa-solid fa-link"></i> 已关联
+                        </button>
                         <button class="filter-tag" data-status="drafts" id="filter-tag-drafts" style="background-color: rgba(235, 203, 139, 0.08); border-color: rgba(235, 203, 139, 0.2); color: #ebcb8b; font-weight: bold;">
                             <i class="fa-solid fa-file-signature"></i> 草稿箱 (<span id="draft-count-badge">0</span>)
                         </button>
@@ -1135,7 +1138,9 @@
             const filtered = dataSource.filter(proposal => {
                 // 1. Filter by Status
                 let matchesStatus = true;
-                if (currentFilter !== 'all' && currentFilter !== 'drafts') {
+                if (currentFilter === 'linked') {
+                    matchesStatus = relationsData.some(r => r.source === proposal.id || r.target === proposal.id);
+                } else if (currentFilter !== 'all' && currentFilter !== 'drafts') {
                     const statuses = currentFilter.split(',');
                     matchesStatus = statuses.includes(proposal.status);
                 }
@@ -1262,10 +1267,14 @@
                 else if (['已废弃', '已关闭', '冻结中'].includes(p.status)) statusClass = 'status-closed';
                 else if (p.status === '异议') statusClass = 'status-objection';
 
+                const isLinked = relationsData.some(r => r.source === p.id || r.target === p.id);
+                const linkedBadgeHtml = isLinked ? `<span class="card-status-badge status-linked-badge" title="该提案包含与其他提案的联动关联"><i class="fa-solid fa-link"></i> 已关联</span>` : '';
+
                 card.innerHTML = `
-                    <div class="card-header">
+                    <div class="card-header" style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
                         <span class="card-status-badge ${statusClass}">${statusLabel}</span>
-                        <span class="card-date">${p.date.split(' ')[0]}</span>
+                        ${linkedBadgeHtml}
+                        <span class="card-date" style="margin-left: auto;">${p.date.split(' ')[0]}</span>
                     </div>
                     <h3 class="card-title">${escapeHTML(p.title)}</h3>
                     <div class="card-footer">
