@@ -2063,6 +2063,13 @@ select.form-control-input {
     padding: 0.15rem 0.45rem !important;
 }
 
+.filter-tag.status-linked-tag.active {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 2px 8px rgba(136, 192, 208, 0.35);
+}
+
 /* Search Scope Box Styling in Sidebar */
 .search-scope-section {
     padding: 0.4rem 1rem 0.5rem 1rem;

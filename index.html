@@ -1130,19 +1130,25 @@
             });
         }
 
+        let isLinkedOnly = false;
+
         // Combined Filter and Search matching
         function getFilteredData() {
             const now = new Date();
             const dataSource = (currentFilter === 'drafts') ? draftProposals : proposalsData;
             
             const filtered = dataSource.filter(proposal => {
-                // 1. Filter by Status
+                // 1. Filter by Main Status
                 let matchesStatus = true;
-                if (currentFilter === 'linked') {
-                    matchesStatus = relationsData.some(r => r.source === proposal.id || r.target === proposal.id);
-                } else if (currentFilter !== 'all' && currentFilter !== 'drafts') {
+                if (currentFilter !== 'all' && currentFilter !== 'drafts') {
                     const statuses = currentFilter.split(',');
                     matchesStatus = statuses.includes(proposal.status);
+                }
+
+                // 2. Composite Filter: Linked Only
+                let matchesLinked = true;
+                if (isLinkedOnly) {
+                    matchesLinked = relationsData.some(r => r.source === proposal.id || r.target === proposal.id);
                 }
 
                 // 2. Filter by Search keyword (Fuzzy Search)
@@ -1198,7 +1204,7 @@
                     matchesDate = false;
                 }
 
-                return matchesStatus && matchesSearch && matchesDate;
+                return matchesStatus && matchesLinked && matchesSearch && matchesDate;
             });
 
             // 4. Sort by Date Descending (Newest proposals at top)
@@ -1227,7 +1233,7 @@
                     currentFilter = 'all';
                     document.querySelectorAll('.filter-tag').forEach(tag => {
                         if (tag.dataset.status === 'all') tag.classList.add('active');
-                        else tag.classList.remove('active');
+                        else if (tag.dataset.status !== 'linked') tag.classList.remove('active');
                     });
                 }
             }
@@ -1669,10 +1675,23 @@
             const btn = e.target.closest('.filter-tag');
             if (!btn) return;
             
-            document.querySelectorAll('.filter-tag').forEach(tag => tag.classList.remove('active'));
-            btn.classList.add('active');
-            
-            currentFilter = btn.dataset.status;
+            const status = btn.dataset.status;
+            if (status === 'linked') {
+                isLinkedOnly = !isLinkedOnly;
+                if (isLinkedOnly) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            } else {
+                document.querySelectorAll('.filter-tag').forEach(tag => {
+                    if (tag.dataset.status !== 'linked') {
+                        tag.classList.remove('active');
+                    }
+                });
+                btn.classList.add('active');
+                currentFilter = status;
+            }
             renderProposalList();
         });
 
