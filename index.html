@@ -406,8 +406,8 @@
                                         </select>
                                     </div>
                                     <div class="form-group-item">
-                                        <label for="form-id">提案ID (唯一标识，自动生成)：</label>
-                                        <input type="text" id="form-id" class="form-control-input" placeholder="例如：1520398791772078111" required>
+                                        <label for="form-id">提案ID (系统自动生成与匹配，不可修改)：</label>
+                                        <input type="text" id="form-id" class="form-control-input" readonly placeholder="系统自动生成唯一ID..." style="background-color: var(--badge-bg); opacity: 0.85; cursor: not-allowed;" required>
                                     </div>
                                 </div>
                                 
@@ -858,6 +858,120 @@
             selectEl.syncSearchableSelect = syncInputText;
         }
 
+        // Helper to turn multi-select dropdowns into searchable input dropdown comboboxes with tag pills
+        function makeMultiSelectSearchable(selectEl, placeholder) {
+            if (!selectEl || selectEl.dataset.searchableInitialized) return;
+            selectEl.dataset.searchableInitialized = 'true';
+            
+            selectEl.style.display = 'none';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'searchable-select-wrapper multi-select-wrapper';
+            selectEl.parentNode.insertBefore(wrapper, selectEl);
+            
+            const tagsBox = document.createElement('div');
+            tagsBox.className = 'multi-select-tags-box';
+            wrapper.appendChild(tagsBox);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control-input search-select-input';
+            input.placeholder = placeholder || '🔍 输入关键字检索并多选提案...';
+            input.autocomplete = 'off';
+            wrapper.appendChild(input);
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'search-select-dropdown multi-select-dropdown';
+            dropdown.style.display = 'none';
+            wrapper.appendChild(dropdown);
+
+            function syncTags() {
+                tagsBox.innerHTML = '';
+                const selectedOpts = Array.from(selectEl.options).filter(opt => opt.selected);
+                
+                if (selectedOpts.length === 0) {
+                    tagsBox.style.display = 'none';
+                } else {
+                    tagsBox.style.display = 'flex';
+                    selectedOpts.forEach(opt => {
+                        const tag = document.createElement('span');
+                        tag.className = 'multi-select-tag';
+                        tag.innerHTML = `
+                            <span class="tag-label">${escapeHTML(opt.textContent)}</span>
+                            <span class="tag-remove" data-value="${escapeHTML(opt.value)}">&times;</span>
+                        `;
+                        tag.querySelector('.tag-remove').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            opt.selected = false;
+                            selectEl.dispatchEvent(new Event('change'));
+                            syncTags();
+                            buildDropdownList(input.value);
+                        });
+                        tagsBox.appendChild(tag);
+                    });
+                }
+            }
+
+            function buildDropdownList(filterText = '') {
+                dropdown.innerHTML = '';
+                const query = filterText.toLowerCase();
+                let matchCount = 0;
+                
+                Array.from(selectEl.options).forEach(opt => {
+                    if (!opt.value) return;
+                    const text = opt.textContent;
+                    if (query && !fuzzyMatch(text, query)) return;
+                    
+                    matchCount++;
+                    const optDiv = document.createElement('div');
+                    optDiv.className = `search-select-option multi-option ${opt.selected ? 'selected' : ''}`;
+                    optDiv.innerHTML = `
+                        <input type="checkbox" class="multi-option-checkbox" ${opt.selected ? 'checked' : ''}>
+                        <span class="multi-option-text">${escapeHTML(text)}</span>
+                    `;
+                    
+                    optDiv.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        opt.selected = !opt.selected;
+                        selectEl.dispatchEvent(new Event('change'));
+                        syncTags();
+                        buildDropdownList(input.value);
+                    });
+                    
+                    dropdown.appendChild(optDiv);
+                });
+                
+                if (matchCount === 0) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'search-select-option';
+                    emptyDiv.style.color = 'var(--text-secondary)';
+                    emptyDiv.style.textAlign = 'center';
+                    emptyDiv.textContent = '无匹配提案';
+                    dropdown.appendChild(emptyDiv);
+                }
+            }
+
+            syncTags();
+
+            input.addEventListener('focus', () => {
+                buildDropdownList(input.value);
+                dropdown.style.display = 'block';
+            });
+            
+            input.addEventListener('input', () => {
+                buildDropdownList(input.value);
+                dropdown.style.display = 'block';
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    dropdown.style.display = 'none';
+                }, 200);
+            });
+            
+            selectEl.syncSearchableSelect = syncTags;
+        }
+
         // Open/Close settings modals
         settingsToggle.addEventListener('click', () => {
             settingsModal.style.display = 'flex';
@@ -867,12 +981,14 @@
             // Initialize searchable dropdown selectors
             makeSelectSearchable(formEditSelect, '🔍 搜索并选择载入已有提案...');
             makeSelectSearchable(relSourceSelect, '🔍 搜索并选择源提案 A...');
-            makeSelectSearchable(relTargetSelect, '🔍 搜索并选择目标提案 B...');
+            makeMultiSelectSearchable(relTargetSelect, '🔍 搜索或选择目标提案 B (可多选)...');
+            makeMultiSelectSearchable(formRelationsMulti, '🔍 搜索或选择关联提案 (可多选)...');
             
             // Sync searchable options display values
             if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
             if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
             if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
+            if (formRelationsMulti.syncSearchableSelect) formRelationsMulti.syncSearchableSelect();
         });
         
         closeSettingsBtn.addEventListener('click', () => {
@@ -1572,7 +1688,8 @@
             // Initialize searchable dropdown selectors
             makeSelectSearchable(formEditSelect, '🔍 搜索并选择载入已有提案...');
             makeSelectSearchable(relSourceSelect, '🔍 搜索并选择源提案 A...');
-            makeSelectSearchable(relTargetSelect, '🔍 搜索并选择目标提案 B...');
+            makeMultiSelectSearchable(relTargetSelect, '🔍 搜索或选择目标提案 B (可多选)...');
+            makeMultiSelectSearchable(formRelationsMulti, '🔍 搜索或选择关联提案 (可多选)...');
             
             formEditSelect.value = activeProposalId;
             prefillCreatorFormFields(activeProposalId);
@@ -1582,6 +1699,7 @@
             if (formEditSelect.syncSearchableSelect) formEditSelect.syncSearchableSelect();
             if (relSourceSelect.syncSearchableSelect) relSourceSelect.syncSearchableSelect();
             if (relTargetSelect.syncSearchableSelect) relTargetSelect.syncSearchableSelect();
+            if (formRelationsMulti.syncSearchableSelect) formRelationsMulti.syncSearchableSelect();
         });
 
         // ==========================================================================
